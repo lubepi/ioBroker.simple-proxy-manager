@@ -149,16 +149,9 @@
               "noneLabel": "(Standard)"
             },
             {
-              "type": "checkbox",
-              "attr": "allowExternal",
-              "width": "7%",
-              "title": "Extern",
-              "default": false
-            },
-            {
               "type": "text",
               "attr": "allowedNetworks",
-              "width": "18%",
+              "width": "25%",
               "title": "Erlaubte Netze",
               "placeholder": "192.168.0.0/24, fd00::/8"
             },
@@ -174,7 +167,7 @@
         "_help": {
           "type": "staticText",
           "sm": 12,
-          "text": "**Hostname**: Domain die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Zertifikat**: Name der Zertifikat-Collection aus `system.certificates` (z.B. `acme` oder `defaultCollection`). Verfügbare Collections sind im Log beim Adapterstart sichtbar. **Extern**: Zugriff von außerhalb des lokalen Netzes erlaubt. **Erlaubte Netze**: Kommaseparierte CIDR-Netzwerke/IPs (IPv4 + IPv6). **Change Origin**: Host-Header auf Ziel-IP umschreiben (z.B. für FritzBox)."
+          "text": "**Hostname**: Domain die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Zertifikat**: Zertifikat-Collection aus `system.certificates`. **Erlaubte Netze**: Kommaseparierte CIDR-Netzwerke/IPs (IPv4 + IPv6). Wenn leer, ist der Zugriff von überall erlaubt. **Change Origin**: Host-Header auf Ziel-IP umschreiben (z.B. für FritzBox)."
         }
       }
     }

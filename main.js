@@ -46,7 +46,6 @@ class SimpleProxyManager extends utils.Adapter {
       }
       this.backends[entry.hostname] = {
         target: entry.target,
-        allowExternal: !!entry.allowExternal,
         allowedNetworks: networks,
         changeOrigin: !!entry.changeOrigin,
         certificate: entry.certificate || '',
@@ -365,11 +364,12 @@ class SimpleProxyManager extends utils.Adapter {
   isAllowedIP(clientIP, backend) {
     if (!clientIP) return false;
 
+    const networks = backend.allowedNetworks;
+    // Keine Netzwerke konfiguriert = alle IPs erlaubt
+    if (!networks || networks.length === 0) return true;
+
     // Localhost ist immer erlaubt
     if (clientIP === '127.0.0.1' || clientIP === '::1') return true;
-
-    const networks = backend.allowedNetworks;
-    if (!networks || networks.length === 0) return false;
 
     const ipBytes = SimpleProxyManager.parseIP(clientIP);
     if (!ipBytes) return false;
@@ -403,16 +403,14 @@ class SimpleProxyManager extends utils.Adapter {
       return;
     }
 
-    // IP-Filterung für interne Dienste
-    if (!backend.allowExternal) {
-      if (!this.isAllowedIP(clientIP, backend)) {
-        this.log.warn('Zugriff verweigert für ' + clientIP + ' auf ' + host);
-        const headers = { 'Content-Type': 'text/html; charset=utf-8' };
-        if (this.hstsHeader) headers['Strict-Transport-Security'] = this.hstsHeader;
-        res.writeHead(403, headers);
-        res.end('<h1>403 Forbidden</h1><p>Zugriff nur aus dem lokalen Netzwerk erlaubt.</p>');
-        return;
-      }
+    // IP-Filterung
+    if (!this.isAllowedIP(clientIP, backend)) {
+      this.log.warn('Zugriff verweigert für ' + clientIP + ' auf ' + host);
+      const headers = { 'Content-Type': 'text/html; charset=utf-8' };
+      if (this.hstsHeader) headers['Strict-Transport-Security'] = this.hstsHeader;
+      res.writeHead(403, headers);
+      res.end('<h1>403 Forbidden</h1><p>Zugriff nur aus dem lokalen Netzwerk erlaubt.</p>');
+      return;
     }
 
     // Request an Backend weiterleiten
@@ -433,12 +431,10 @@ class SimpleProxyManager extends utils.Adapter {
     }
 
     // IP-Filterung auch für WebSockets
-    if (!backend.allowExternal) {
-      if (!this.isAllowedIP(clientIP, backend)) {
-        this.log.warn('WebSocket-Zugriff verweigert für ' + clientIP);
-        socket.destroy();
-        return;
-      }
+    if (!this.isAllowedIP(clientIP, backend)) {
+      this.log.warn('WebSocket-Zugriff verweigert für ' + clientIP);
+      socket.destroy();
+      return;
     }
 
     this.proxy.ws(req, socket, head, {
@@ -500,7 +496,7 @@ class SimpleProxyManager extends utils.Adapter {
       this.log.info('HTTPS Reverse Proxy läuft auf Port ' + httpsPort + ' (IPv4 + IPv6)');
       this.log.info('Konfigurierte Backends:');
       for (const [host, cfg] of Object.entries(this.backends)) {
-        this.log.info('  ' + host + ' -> ' + cfg.target + ' [cert: ' + (cfg.certificate || 'default') + ']' + (cfg.allowExternal ? ' (extern)' : ' (lokal: ' + cfg.allowedNetworks.join(', ') + ')'));
+        this.log.info('  ' + host + ' -> ' + cfg.target + ' [cert: ' + (cfg.certificate || 'default') + ']' + (cfg.allowedNetworks.length > 0 ? ' (Netze: ' + cfg.allowedNetworks.join(', ') + ')' : ' (alle IPs)'));
       }
       this.setState('info.connection', true, true);
     });

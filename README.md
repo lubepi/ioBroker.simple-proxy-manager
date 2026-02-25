@@ -84,17 +84,16 @@ Jedes Backend definiert einen virtuellen Host:
 | **Hostname** | Domain, die per DNS auf diesen Server zeigt |
 | **Ziel-URL** | Backend-Adresse (`http://IP:Port`) |
 | **Zertifikat** | Name der Zertifikat-Collection aus `system.certificates` (z.B. `acme`, `defaultCollection`) |
-| **Extern** | Zugriff von außerhalb des lokalen Netzes erlaubt |
-| **Erlaubte Netze** | Kommaseparierte CIDR-Netzwerke/IPs für lokalen Zugriff (z.B. `192.168.0.0/24, fd00::/8`) |
+| **Erlaubte Netze** | Kommaseparierte CIDR-Netzwerke/IPs (z.B. `192.168.0.0/24, fd00::/8`). Leer = Zugriff von überall erlaubt. |
 | **Change Origin** | Host-Header auf Ziel-IP umschreiben |
 
 ### Beispiel-Konfiguration
 
-| Hostname | Ziel-URL | Zertifikat | Extern | Erlaubte Netze | Change Origin |
-|---|---|---|---|---|---|
-| `wakeup.example.de` | `http://127.0.0.1:3000` | `acme` | ✓ | – | ✗ |
-| `iobroker.example.de` | `http://127.0.0.1:8081` | `acme` | ✗ | `192.168.0.0/24` | ✗ |
-| `fritz.example.de` | `http://192.168.0.1` | `defaultCollection` | ✗ | `192.168.0.0/24, 10.0.0.0/8` | ✓ |
+| Hostname | Ziel-URL | Zertifikat | Erlaubte Netze | Change Origin |
+|---|---|---|---|---|
+| `wakeup.example.de` | `http://127.0.0.1:3000` | `acme` | – | ✗ |
+| `iobroker.example.de` | `http://127.0.0.1:8081` | `acme` | `192.168.0.0/24` | ✗ |
+| `fritz.example.de` | `http://192.168.0.1` | `defaultCollection` | `192.168.0.0/24, 10.0.0.0/8` | ✓ |
 
 ## States
 
