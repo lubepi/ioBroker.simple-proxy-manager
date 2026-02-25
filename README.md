@@ -5,6 +5,7 @@ Einfacher HTTPS Reverse Proxy Manager für ioBroker.
 ## Features
 
 - **HTTPS Reverse Proxy** mit virtuellen Hosts (SNI)
+- **Zertifikat pro Virtual Host** – Auswahl aus allen verfügbaren Collections in `system.certificates` (ACME, Self-Signed, etc.)
 - **Konfigurierbare Backends** über die Admin-Oberfläche
 - **IP-Filterung** für interne Dienste (CIDR-basiert, IPv4 + IPv6, mehrere Netzwerke)
 - **HTTP → HTTPS Redirect** mit ACME-Challenge-Weiterleitung
@@ -68,6 +69,7 @@ iobroker url https://github.com/user/ioBroker.simple-proxy-manager
 | ACME Adapter Port | 8080 | Interner Port des ACME-Adapters |
 | HSTS aktivieren | ✓ | Strict-Transport-Security Header |
 | HSTS max-age | 31536000 | HSTS Gültigkeitsdauer in Sekunden (1 Jahr) |
+| Standard-Zertifikat | – | Collection-Name für Fallback (unbekannte Hostnamen) |
 | Prüfintervall | 1 | Wie oft Zertifikate geprüft werden (Stunden) |
 | Ablaufwarnung | 14 | Warnung X Tage vor Ablauf |
 | Anfragen protokollieren | ✗ | Jede Anfrage loggen (IP, Host, URL) |
@@ -81,17 +83,18 @@ Jedes Backend definiert einen virtuellen Host:
 | **Aktiv** | Backend aktiviert/deaktiviert |
 | **Hostname** | Domain, die per DNS auf diesen Server zeigt |
 | **Ziel-URL** | Backend-Adresse (`http://IP:Port`) |
+| **Zertifikat** | Name der Zertifikat-Collection aus `system.certificates` (z.B. `acme`, `defaultCollection`) |
 | **Extern** | Zugriff von außerhalb des lokalen Netzes erlaubt |
 | **Erlaubte Netze** | Kommaseparierte CIDR-Netzwerke/IPs für lokalen Zugriff (z.B. `192.168.0.0/24, fd00::/8`) |
 | **Change Origin** | Host-Header auf Ziel-IP umschreiben |
 
 ### Beispiel-Konfiguration
 
-| Hostname | Ziel-URL | Extern | Erlaubte Netze | Change Origin |
-|---|---|---|---|---|
-| `wakeup.example.de` | `http://127.0.0.1:3000` | ✓ | – | ✗ |
-| `iobroker.example.de` | `http://127.0.0.1:8081` | ✗ | `192.168.0.0/24` | ✗ |
-| `fritz.example.de` | `http://192.168.0.1` | ✗ | `192.168.0.0/24, 10.0.0.0/8` | ✓ |
+| Hostname | Ziel-URL | Zertifikat | Extern | Erlaubte Netze | Change Origin |
+|---|---|---|---|---|---|
+| `wakeup.example.de` | `http://127.0.0.1:3000` | `acme` | ✓ | – | ✗ |
+| `iobroker.example.de` | `http://127.0.0.1:8081` | `acme` | ✗ | `192.168.0.0/24` | ✗ |
+| `fritz.example.de` | `http://192.168.0.1` | `defaultCollection` | ✗ | `192.168.0.0/24, 10.0.0.0/8` | ✓ |
 
 ## States
 
@@ -109,6 +112,17 @@ ACME-Challenges werden automatisch vom Proxy an den konfigurierten ACME-Port wei
 1. ACME-Adapter Port auf **8080** setzen (oder gewünschten Port)
 2. Im Proxy-Manager den ACME Adapter Port auf denselben Wert setzen
 3. Alle gewünschten Domains im ACME-Adapter eintragen
+
+## Zertifikate
+
+Der Adapter liest alle Zertifikat-Collections aus `system.certificates`. Das beinhaltet:
+
+- **ACME-Collections** (z.B. `acme`) – automatisch generierte Let’s Encrypt Zertifikate (der Name wird im ACME-Adapter vergeben)
+- **Self-Signed / manuelle Collections** (z.B. `defaultCollection`) – vom Web-Adapter oder manuell erstellte Zertifikate
+
+Jedes Backend kann eine eigene Collection zugewiesen bekommen. Per **SNI** (Server Name Indication) wird beim TLS-Handshake automatisch das richtige Zertifikat für den angefragten Hostnamen ausgewählt.
+
+Alle verfügbaren Collection-Namen werden beim Adapterstart im Log ausgegeben.
 
 ## Lizenz
 

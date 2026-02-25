@@ -62,21 +62,29 @@
           "size": 4,
           "sm": 12
         },
+        "defaultCertificate": {
+          "type": "text",
+          "label": "Standard-Zertifikat (Collection-Name)",
+          "sm": 12,
+          "md": 4,
+          "placeholder": "acme",
+          "help": "Name der Zertifikat-Collection aus system.certificates, die als Fallback für unbekannte Hostnamen verwendet wird. Beispiel: \"acme\" oder \"defaultCollection\"."
+        },
         "certCheckHours": {
           "type": "number",
           "label": "Prüfintervall (Stunden)",
           "sm": 12,
-          "md": 6,
+          "md": 4,
           "min": 1,
-          "help": "Wie oft nach neuen ACME-Zertifikaten geprüft wird. Bei Erneuerung wird der SSL-Kontext automatisch aktualisiert."
+          "help": "Wie oft Zertifikate auf Änderungen geprüft werden. Bei Erneuerung werden die SNI-Kontexte automatisch aktualisiert."
         },
         "certWarnDays": {
           "type": "number",
           "label": "Ablaufwarnung (Tage)",
           "sm": 12,
-          "md": 6,
+          "md": 4,
           "min": 1,
-          "help": "Warnung im Log wenn das Zertifikat in weniger als X Tagen abläuft."
+          "help": "Warnung im Log wenn ein Zertifikat in weniger als X Tagen abläuft."
         },
         "_loggingHeader": {
           "type": "header",
@@ -118,35 +126,42 @@
             {
               "type": "text",
               "attr": "hostname",
-              "width": "22%",
+              "width": "18%",
               "title": "Hostname",
               "placeholder": "example.domain.de"
             },
             {
               "type": "text",
               "attr": "target",
-              "width": "25%",
+              "width": "20%",
               "title": "Ziel-URL",
               "placeholder": "http://127.0.0.1:3000"
             },
             {
+              "type": "text",
+              "attr": "certificate",
+              "width": "13%",
+              "title": "Zertifikat",
+              "placeholder": "acme"
+            },
+            {
               "type": "checkbox",
               "attr": "allowExternal",
-              "width": "8%",
+              "width": "7%",
               "title": "Extern",
               "default": false
             },
             {
               "type": "text",
               "attr": "allowedNetworks",
-              "width": "22%",
+              "width": "18%",
               "title": "Erlaubte Netze",
               "placeholder": "192.168.0.0/24, fd00::/8"
             },
             {
               "type": "checkbox",
               "attr": "changeOrigin",
-              "width": "10%",
+              "width": "8%",
               "title": "Change Origin",
               "default": false
             }
@@ -155,7 +170,7 @@
         "_help": {
           "type": "staticText",
           "sm": 12,
-          "text": "**Hostname**: Domain die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Extern**: Zugriff von außerhalb des lokalen Netzes erlaubt. **Erlaubte Netze**: Kommaseparierte Liste von CIDR-Netzwerken oder Einzel-IPs (IPv4 und IPv6). Nur relevant wenn nicht extern. Beispiele: `192.168.0.0/24`, `10.0.0.0/8`, `fd00::/8`, `192.168.0.5`. **Change Origin**: Host-Header auf Ziel-IP umschreiben (nötig z.B. für FritzBox)."
+          "text": "**Hostname**: Domain die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Zertifikat**: Name der Zertifikat-Collection aus `system.certificates` (z.B. `acme` oder `defaultCollection`). Verfügbare Collections sind im Log beim Adapterstart sichtbar. **Extern**: Zugriff von außerhalb des lokalen Netzes erlaubt. **Erlaubte Netze**: Kommaseparierte CIDR-Netzwerke/IPs (IPv4 + IPv6). **Change Origin**: Host-Header auf Ziel-IP umschreiben (z.B. für FritzBox)."
         }
       }
     }

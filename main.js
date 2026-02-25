@@ -4,6 +4,7 @@ const utils = require('@iobroker/adapter-core');
 const https = require('https');
 const http = require('http');
 const httpProxy = require('http-proxy');
+const tls = require('tls');
 
 class SimpleProxyManager extends utils.Adapter {
   constructor(options) {
@@ -18,7 +19,8 @@ class SimpleProxyManager extends utils.Adapter {
     this.httpServer = null;
     this.proxy = null;
     this.certCheckInterval = null;
-    this.currentCert = null;
+    this.certContexts = {};   // hostname -> tls.SecureContext
+    this.certHashes = {};     // collectionName -> cert string (Änderungserkennung)
     this.backends = {};
     this.hstsHeader = null;
   }
@@ -46,6 +48,7 @@ class SimpleProxyManager extends utils.Adapter {
         allowExternal: !!entry.allowExternal,
         allowedNetworks: networks,
         changeOrigin: !!entry.changeOrigin,
+        certificate: entry.certificate || '',
       };
     }
 
@@ -59,8 +62,8 @@ class SimpleProxyManager extends utils.Adapter {
       this.hstsHeader = 'max-age=' + (config.hstsMaxAge || 31536000) + '; includeSubDomains';
     }
 
-    // SSL-Zertifikate laden
-    const sslOptions = await this.loadCertificates();
+    // SSL-Zertifikate laden (pro Backend konfigurierbar via SNI)
+    const sslOptions = await this.loadAllCertificates();
     if (!sslOptions) return;
 
     // Proxy starten
@@ -69,77 +72,200 @@ class SimpleProxyManager extends utils.Adapter {
 
   // ============ SSL ZERTIFIKATE AUS IOBROKER ============
 
-  async loadCertificates() {
+  /**
+   * Löst eine Zertifikat-Collection aus system.certificates auf.
+   * Unterstützt:
+   *  - ACME-Style: key (PEM) + chain[] (PEM-Array)
+   *  - Referenz-Style: key/cert verweisen auf Namen in native.certificates
+   */
+  resolveCertCollection(collectionName, certsObj) {
+    const collections = certsObj.native.collections || {};
+    const certificates = certsObj.native.certificates || {};
+
+    if (!collections[collectionName]) return null;
+
+    const coll = collections[collectionName];
+    let key, cert;
+
+    if (coll.chain && Array.isArray(coll.chain) && coll.chain.length > 0) {
+      // ACME-Style: key ist PEM direkt, chain ist Array von PEM-Zertifikaten
+      key = coll.key;
+      cert = coll.chain.join('');
+    } else {
+      // Referenz-Style: key/cert sind Namen die auf native.certificates zeigen
+      key = certificates[coll.key] || coll.key;
+      cert = certificates[coll.cert] || coll.cert;
+    }
+
+    if (!key || !cert) return null;
+
+    return {
+      key,
+      cert,
+      tsExpires: coll.tsExpires || null,
+      domains: coll.domains || [],
+    };
+  }
+
+  /**
+   * Lädt alle von Backends benötigten Zertifikate und erstellt pro Hostname
+   * einen tls.SecureContext für SNI.
+   */
+  async loadAllCertificates() {
     try {
       const obj = await this.getForeignObjectAsync('system.certificates');
-
       if (!obj || !obj.native) {
         this.log.error('system.certificates nicht gefunden');
         return null;
       }
 
-      const acme = obj.native.collections && obj.native.collections.acme;
+      // Verfügbare Collections anzeigen
+      const availableCollections = Object.keys(obj.native.collections || {});
+      this.log.info('Verfügbare Zertifikat-Collections: ' + availableCollections.join(', '));
 
-      if (!acme) {
-        this.log.error('ACME Collection nicht gefunden – ist der ACME-Adapter konfiguriert?');
+      // Alle von Backends verwendeten Collection-Namen sammeln
+      const usedCollections = new Set();
+      for (const backend of Object.values(this.backends)) {
+        if (backend.certificate) usedCollections.add(backend.certificate);
+      }
+
+      // Default-Zertifikat aus Konfiguration hinzufügen
+      const defaultCertName = this.config.defaultCertificate;
+      if (defaultCertName) usedCollections.add(defaultCertName);
+
+      if (usedCollections.size === 0) {
+        this.log.error('Keine Zertifikat-Collections konfiguriert – bitte in den Backend-Einstellungen eine Collection zuweisen');
         return null;
       }
 
-      if (!acme.key || !acme.chain || acme.chain.length === 0) {
-        this.log.error('ACME Zertifikate unvollständig');
+      let defaultSslOptions = null;
+      let minDaysLeft = Infinity;
+      let earliestExpiry = null;
+
+      // Jede Collection auflösen und SecureContexts erstellen
+      for (const collName of usedCollections) {
+        const resolved = this.resolveCertCollection(collName, obj);
+        if (!resolved) {
+          this.log.error('Zertifikat-Collection "' + collName + '" nicht gefunden oder unvollständig');
+          continue;
+        }
+
+        // Cert-Inhalt für Änderungserkennung cachen
+        this.certHashes[collName] = resolved.cert;
+
+        // SecureContext für jeden Hostname erstellen der diese Collection nutzt
+        const ctx = tls.createSecureContext({ key: resolved.key, cert: resolved.cert });
+        for (const [hostname, backend] of Object.entries(this.backends)) {
+          if (backend.certificate === collName) {
+            this.certContexts[hostname] = ctx;
+          }
+        }
+
+        // Default-Zertifikat: explizit konfiguriertes oder erstes verfügbares
+        if (collName === defaultCertName || !defaultSslOptions) {
+          defaultSslOptions = { key: resolved.key, cert: resolved.cert };
+        }
+
+        // Ablauf tracken (nur für Collections mit tsExpires, z.B. ACME)
+        if (resolved.tsExpires) {
+          const daysLeft = Math.floor((resolved.tsExpires - Date.now()) / (1000 * 60 * 60 * 24));
+          if (daysLeft < minDaysLeft) {
+            minDaysLeft = daysLeft;
+            earliestExpiry = new Date(resolved.tsExpires);
+          }
+          this.log.info('Zertifikat "' + collName + '": Domains=' + resolved.domains.join(', ') + ', gültig bis ' + new Date(resolved.tsExpires).toLocaleDateString('de-DE'));
+          if (daysLeft < (this.config.certWarnDays || 14)) {
+            this.log.warn('Zertifikat "' + collName + '" läuft in ' + daysLeft + ' Tagen ab!');
+          }
+        } else {
+          this.log.info('Zertifikat "' + collName + '" geladen (Self-Signed / kein Ablaufdatum)');
+        }
+      }
+
+      // States aktualisieren (frühester Ablauf aller Zertifikate)
+      if (earliestExpiry) {
+        await this.setStateAsync('info.certificateExpires', earliestExpiry.toLocaleDateString('de-DE'), true);
+        await this.setStateAsync('info.certificateDaysLeft', minDaysLeft, true);
+      }
+
+      if (!defaultSslOptions) {
+        this.log.error('Kein gültiges Zertifikat geladen – Proxy kann nicht starten');
         return null;
       }
 
-      this.log.info('SSL-Zertifikate geladen für: ' + (acme.domains || []).join(', '));
-
-      const expiresDate = new Date(acme.tsExpires);
-      this.log.info('Gültig bis: ' + expiresDate.toLocaleDateString('de-DE'));
-
-      // States aktualisieren
-      const daysLeft = Math.floor((acme.tsExpires - Date.now()) / (1000 * 60 * 60 * 24));
-      await this.setStateAsync('info.certificateExpires', expiresDate.toLocaleDateString('de-DE'), true);
-      await this.setStateAsync('info.certificateDaysLeft', daysLeft, true);
-
-      // Ablaufwarnung
-      if (daysLeft < (this.config.certWarnDays || 14)) {
-        this.log.warn('SSL-Zertifikat läuft in ' + daysLeft + ' Tagen ab!');
-      }
-
-      return {
-        key: acme.key,
-        cert: acme.chain.join(''),
-      };
+      return defaultSslOptions;
     } catch (e) {
       this.log.error('Fehler beim Laden der Zertifikate: ' + e.message);
       return null;
     }
   }
 
+  /**
+   * Prüft alle verwendeten Zertifikat-Collections auf Änderungen
+   * und aktualisiert die SNI-Kontexte bei Bedarf.
+   */
   async checkCertificateRenewal() {
     try {
       const obj = await this.getForeignObjectAsync('system.certificates');
-      const acme = obj && obj.native && obj.native.collections && obj.native.collections.acme;
+      if (!obj || !obj.native) return;
 
-      if (acme && acme.key && acme.chain && acme.chain.length > 0) {
-        const newCert = acme.chain.join('');
+      let changed = false;
+      let minDaysLeft = Infinity;
+      let earliestExpiry = null;
+      let newDefault = null;
 
-        if (newCert !== this.currentCert) {
-          this.httpsServer.setSecureContext({ key: acme.key, cert: newCert });
-          this.currentCert = newCert;
-          this.log.info('SSL-Zertifikate automatisch neu geladen');
+      const defaultCertName = this.config.defaultCertificate;
+      const checkedCollections = new Set();
 
-          const expiresDate = new Date(acme.tsExpires);
-          this.log.info('Gültig bis: ' + expiresDate.toLocaleDateString('de-DE'));
-          await this.setStateAsync('info.certificateExpires', expiresDate.toLocaleDateString('de-DE'), true);
+      for (const [hostname, backend] of Object.entries(this.backends)) {
+        const collName = backend.certificate;
+        if (!collName || checkedCollections.has(collName)) continue;
+        checkedCollections.add(collName);
+
+        const resolved = this.resolveCertCollection(collName, obj);
+        if (!resolved) continue;
+
+        // Prüfen ob sich der Cert-Inhalt geändert hat
+        if (resolved.cert !== this.certHashes[collName]) {
+          const ctx = tls.createSecureContext({ key: resolved.key, cert: resolved.cert });
+          // Alle Hostnames aktualisieren die diese Collection nutzen
+          for (const [h, b] of Object.entries(this.backends)) {
+            if (b.certificate === collName) {
+              this.certContexts[h] = ctx;
+            }
+          }
+          this.certHashes[collName] = resolved.cert;
+          changed = true;
+          this.log.info('Zertifikat "' + collName + '" automatisch neu geladen');
         }
 
-        // Ablaufwarnung + State
-        const daysLeft = Math.floor((acme.tsExpires - Date.now()) / (1000 * 60 * 60 * 24));
-        await this.setStateAsync('info.certificateDaysLeft', daysLeft, true);
-
-        if (daysLeft < (this.config.certWarnDays || 14)) {
-          this.log.warn('SSL-Zertifikat läuft in ' + daysLeft + ' Tagen ab!');
+        // Ablauf tracken
+        if (resolved.tsExpires) {
+          const daysLeft = Math.floor((resolved.tsExpires - Date.now()) / (1000 * 60 * 60 * 24));
+          if (daysLeft < minDaysLeft) {
+            minDaysLeft = daysLeft;
+            earliestExpiry = new Date(resolved.tsExpires);
+          }
+          if (daysLeft < (this.config.certWarnDays || 14)) {
+            this.log.warn('Zertifikat "' + collName + '" läuft in ' + daysLeft + ' Tagen ab!');
+          }
         }
+
+        // Default-Cert für Server-Kontext merken
+        if (collName === defaultCertName || !newDefault) {
+          newDefault = resolved;
+        }
+      }
+
+      // Default Server-Kontext aktualisieren wenn sich etwas geändert hat
+      if (changed && newDefault && this.httpsServer) {
+        this.httpsServer.setSecureContext({ key: newDefault.key, cert: newDefault.cert });
+      }
+
+      // States aktualisieren
+      if (earliestExpiry) {
+        await this.setStateAsync('info.certificateExpires', earliestExpiry.toLocaleDateString('de-DE'), true);
+        await this.setStateAsync('info.certificateDaysLeft', minDaysLeft, true);
       }
     } catch (e) {
       this.log.error('Fehler bei Zertifikat-Prüfung: ' + e.message);
@@ -324,7 +450,6 @@ class SimpleProxyManager extends utils.Adapter {
 
   startProxy(sslOptions) {
     const config = this.config;
-    this.currentCert = sslOptions.cert;
 
     // Proxy-Server erstellen
     this.proxy = httpProxy.createProxyServer({
@@ -352,8 +477,14 @@ class SimpleProxyManager extends utils.Adapter {
       });
     }
 
-    // HTTPS-Server
-    this.httpsServer = https.createServer(sslOptions, (req, res) => {
+    // HTTPS-Server mit SNI (Server Name Indication) für per-Host Zertifikate
+    this.httpsServer = https.createServer({
+      ...sslOptions,
+      SNICallback: (servername, cb) => {
+        const ctx = this.certContexts[servername];
+        cb(null, ctx || null); // null = Default-Zertifikat verwenden
+      },
+    }, (req, res) => {
       this.handleRequest(req, res);
     });
 
@@ -368,7 +499,7 @@ class SimpleProxyManager extends utils.Adapter {
       this.log.info('HTTPS Reverse Proxy läuft auf Port ' + httpsPort + ' (IPv4 + IPv6)');
       this.log.info('Konfigurierte Backends:');
       for (const [host, cfg] of Object.entries(this.backends)) {
-        this.log.info('  ' + host + ' -> ' + cfg.target + (cfg.allowExternal ? ' (extern)' : ' (lokal: ' + cfg.allowedNetworks.join(', ') + ')'));
+        this.log.info('  ' + host + ' -> ' + cfg.target + ' [cert: ' + (cfg.certificate || 'default') + ']' + (cfg.allowExternal ? ' (extern)' : ' (lokal: ' + cfg.allowedNetworks.join(', ') + ')'));
       }
       this.setState('info.connection', true, true);
     });
