@@ -24,6 +24,10 @@
     "mode": "daemon",
     "type": "network",
     "compact": true,
+    "messagebox": true,
+    "supportedMessages": {
+      "custom": true
+    },
     "connectionType": "local",
     "dataSource": "push",
     "stopTimeout": 5000,
