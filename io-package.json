@@ -1,0 +1,100 @@
+{
+  "common": {
+    "name": "simple-proxy-manager",
+    "version": "0.1.0",
+    "title": "Simple Proxy Manager",
+    "titleLang": {
+      "en": "Simple Proxy Manager",
+      "de": "Einfacher Proxy Manager"
+    },
+    "desc": {
+      "en": "Simple HTTPS reverse proxy manager with virtual hosts, IP filtering and automatic certificate reload",
+      "de": "Einfacher HTTPS Reverse Proxy Manager mit virtuellen Hosts, IP-Filterung und automatischem Zertifikat-Reload"
+    },
+    "authors": ["lubepi"],
+    "keywords": ["proxy", "reverse proxy", "https", "ssl", "virtual host"],
+    "license": "MIT",
+    "platform": "Javascript/Node.js",
+    "main": "main.js",
+    "icon": "simple-proxy-manager.png",
+    "enabled": true,
+    "extIcon": "",
+    "readme": "",
+    "loglevel": "info",
+    "mode": "daemon",
+    "type": "network",
+    "compact": true,
+    "connectionType": "local",
+    "dataSource": "push",
+    "stopTimeout": 5000,
+    "adminUI": {
+      "config": "json"
+    },
+    "dependencies": [
+      { "js-controller": ">=5.0.0" }
+    ],
+    "globalDependencies": []
+  },
+  "native": {
+    "httpsPort": 443,
+    "httpPort": 80,
+    "acmePort": 8080,
+    "logRequests": false,
+    "enableHSTS": true,
+    "hstsMaxAge": 31536000,
+    "certCheckHours": 1,
+    "certWarnDays": 14,
+    "backends": []
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "role": "indicator.connected",
+        "name": "Proxy running",
+        "type": "boolean",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.certificateExpires",
+      "type": "state",
+      "common": {
+        "role": "text",
+        "name": "Certificate expiration date",
+        "type": "string",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.certificateDaysLeft",
+      "type": "state",
+      "common": {
+        "role": "value",
+        "name": "Days until certificate expiry",
+        "type": "number",
+        "read": true,
+        "write": false,
+        "unit": "days",
+        "def": 0
+      },
+      "native": {}
+    }
+  ]
+}

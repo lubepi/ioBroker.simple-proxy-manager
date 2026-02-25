@@ -1,0 +1,163 @@
+{
+  "type": "tabs",
+  "items": {
+    "_general": {
+      "type": "panel",
+      "label": "Allgemein",
+      "items": {
+        "_serverHeader": {
+          "type": "header",
+          "text": "Server-Ports",
+          "size": 4,
+          "sm": 12
+        },
+        "httpsPort": {
+          "type": "number",
+          "label": "HTTPS Port",
+          "sm": 12,
+          "md": 4,
+          "min": 1,
+          "max": 65535,
+          "help": "Port für den HTTPS Reverse Proxy (Standard: 443). Ports unter 1024 benötigen setcap oder Root-Rechte."
+        },
+        "httpPort": {
+          "type": "number",
+          "label": "HTTP Port (Redirect)",
+          "sm": 12,
+          "md": 4,
+          "min": 0,
+          "max": 65535,
+          "help": "Port für HTTP→HTTPS Redirect. 0 = deaktiviert."
+        },
+        "acmePort": {
+          "type": "number",
+          "label": "ACME Adapter Port",
+          "sm": 12,
+          "md": 4,
+          "help": "Interner Port des ACME-Adapters für ACME-Challenge-Weiterleitung."
+        },
+        "_securityHeader": {
+          "type": "header",
+          "text": "Sicherheit",
+          "size": 4,
+          "sm": 12
+        },
+        "enableHSTS": {
+          "type": "checkbox",
+          "label": "HSTS aktivieren (Strict-Transport-Security)",
+          "sm": 12,
+          "md": 6
+        },
+        "hstsMaxAge": {
+          "type": "number",
+          "label": "HSTS max-age (Sekunden)",
+          "sm": 12,
+          "md": 6,
+          "min": 0,
+          "help": "Standard: 31536000 (1 Jahr)"
+        },
+        "_certHeader": {
+          "type": "header",
+          "text": "Zertifikat-Überwachung",
+          "size": 4,
+          "sm": 12
+        },
+        "certCheckHours": {
+          "type": "number",
+          "label": "Prüfintervall (Stunden)",
+          "sm": 12,
+          "md": 6,
+          "min": 1,
+          "help": "Wie oft nach neuen ACME-Zertifikaten geprüft wird. Bei Erneuerung wird der SSL-Kontext automatisch aktualisiert."
+        },
+        "certWarnDays": {
+          "type": "number",
+          "label": "Ablaufwarnung (Tage)",
+          "sm": 12,
+          "md": 6,
+          "min": 1,
+          "help": "Warnung im Log wenn das Zertifikat in weniger als X Tagen abläuft."
+        },
+        "_loggingHeader": {
+          "type": "header",
+          "text": "Logging",
+          "size": 4,
+          "sm": 12
+        },
+        "logRequests": {
+          "type": "checkbox",
+          "label": "Alle Anfragen protokollieren",
+          "sm": 12,
+          "md": 6,
+          "help": "Loggt jede eingehende Anfrage (IP, Host, URL). Start/Stop- und Sicherheits-Meldungen werden immer geloggt."
+        }
+      }
+    },
+    "_backends": {
+      "type": "panel",
+      "label": "Backends",
+      "items": {
+        "_info": {
+          "type": "header",
+          "text": "Proxy-Backends (Virtual Hosts)",
+          "size": 4,
+          "sm": 12
+        },
+        "backends": {
+          "type": "table",
+          "sm": 12,
+          "uniqueColumns": ["hostname"],
+          "items": [
+            {
+              "type": "checkbox",
+              "attr": "enabled",
+              "width": "6%",
+              "title": "Aktiv",
+              "default": true
+            },
+            {
+              "type": "text",
+              "attr": "hostname",
+              "width": "22%",
+              "title": "Hostname",
+              "placeholder": "example.domain.de"
+            },
+            {
+              "type": "text",
+              "attr": "target",
+              "width": "25%",
+              "title": "Ziel-URL",
+              "placeholder": "http://127.0.0.1:3000"
+            },
+            {
+              "type": "checkbox",
+              "attr": "allowExternal",
+              "width": "8%",
+              "title": "Extern",
+              "default": false
+            },
+            {
+              "type": "text",
+              "attr": "allowedSubnet",
+              "width": "22%",
+              "title": "Erlaubtes Subnet",
+              "placeholder": "192.168.0."
+            },
+            {
+              "type": "checkbox",
+              "attr": "changeOrigin",
+              "width": "10%",
+              "title": "Change Origin",
+              "default": false
+            }
+          ]
+        },
+        "_help": {
+          "type": "staticText",
+          "sm": 12,
+          "text": "**Hostname**: Domain die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Extern**: Zugriff von außerhalb des lokalen Netzes erlaubt. **Erlaubtes Subnet**: IPv4-Präfix für lokalen Zugriff (nur relevant wenn nicht extern, z.B. `192.168.0.`). **Change Origin**: Host-Header auf Ziel-IP umschreiben (nötig z.B. für FritzBox)."
+        }
+      }
+    }
+  }
+}
