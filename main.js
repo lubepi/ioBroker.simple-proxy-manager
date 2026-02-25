@@ -57,26 +57,17 @@ class SimpleProxyManager extends utils.Adapter {
       return;
     }
 
-    // HSTS-Header vorbereiten (nur für HTTPS-Modus relevant)
+    // HSTS-Header vorbereiten (nur für HTTPS-Backends relevant)
     if (config.enableHSTS) {
       this.hstsHeader = 'max-age=' + (config.hstsMaxAge || 31536000) + '; includeSubDomains';
     }
 
-    // Prüfen ob Zertifikate konfiguriert sind
-    const hasCerts = config.defaultCertificate ||
-      Object.values(this.backends).some(b => b.certificate);
+    // SSL-Zertifikate laden (Self-Signed als Fallback)
+    const sslOptions = await this.loadAllCertificates();
+    if (!sslOptions) return;
 
-    if (hasCerts) {
-      // HTTPS-Modus: SSL-Zertifikate laden (pro Backend konfigurierbar via SNI)
-      const sslOptions = await this.loadAllCertificates();
-      if (!sslOptions) return;
-      this.startProxy(sslOptions);
-    } else {
-      // HTTP-only Modus: kein Zertifikat konfiguriert
-      this.log.info('Keine Zertifikate konfiguriert – starte im HTTP-only Modus');
-      this.hstsHeader = null; // HSTS macht ohne HTTPS keinen Sinn
-      this.startProxy(null);
-    }
+    // Proxy starten (HTTP + HTTPS immer parallel)
+    this.startProxy(sslOptions);
   }
 
   // ============ SSL ZERTIFIKATE AUS IOBROKER ============
@@ -152,8 +143,8 @@ class SimpleProxyManager extends utils.Adapter {
       if (defaultCertName) usedCollections.add(defaultCertName);
 
       if (usedCollections.size === 0) {
-        this.log.error('Keine Zertifikat-Collections konfiguriert – bitte in den Backend-Einstellungen eine Collection zuweisen');
-        return null;
+        this.log.info('Keine Zertifikat-Collections konfiguriert – verwende Self-Signed als Fallback');
+        usedCollections.add('__selfSigned__');
       }
 
       let defaultSslOptions = null;
@@ -207,8 +198,15 @@ class SimpleProxyManager extends utils.Adapter {
       }
 
       if (!defaultSslOptions) {
-        this.log.error('Kein gültiges Zertifikat geladen – Proxy kann nicht starten');
-        return null;
+        // Letzter Fallback: Self-Signed laden
+        this.log.info('Kein Zertifikat geladen – versuche Self-Signed als Fallback');
+        const selfSigned = this.resolveCertCollection('__selfSigned__', obj);
+        if (selfSigned) {
+          defaultSslOptions = { key: selfSigned.key, cert: selfSigned.cert };
+        } else {
+          this.log.error('Kein gültiges Zertifikat und kein Self-Signed verfügbar – HTTPS-Server kann nicht starten');
+          return null;
+        }
       }
 
       return defaultSslOptions;
@@ -402,13 +400,17 @@ class SimpleProxyManager extends utils.Adapter {
 
   // ============ REQUEST HANDLER ============
 
+  /**
+   * HTTPS Request Handler: Bedient nur Backends die ein Zertifikat haben.
+   * Backends ohne Zertifikat bekommen einen Hinweis auf HTTP.
+   */
   handleRequest(req, res) {
     const host = (req.headers.host || '').split(':')[0];
     const clientIP = this.getClientIP(req);
     const backend = this.backends[host];
 
     if (this.config.logRequests) {
-      this.log.info(clientIP + ' -> ' + host + req.url);
+      this.log.info(clientIP + ' -> HTTPS ' + host + req.url);
     }
 
     // Unbekannter Host
@@ -418,6 +420,15 @@ class SimpleProxyManager extends utils.Adapter {
       if (this.hstsHeader) headers['Strict-Transport-Security'] = this.hstsHeader;
       res.writeHead(404, headers);
       res.end('<h1>404 Not Found</h1><p>Unbekannte Domain.</p>');
+      return;
+    }
+
+    // Backend ohne Zertifikat → nur über HTTP erreichbar
+    if (!backend.certificate) {
+      const httpPort = this.config.httpPort || 80;
+      const portSuffix = httpPort === 80 ? '' : ':' + httpPort;
+      res.writeHead(302, { Location: 'http://' + host + portSuffix + req.url });
+      res.end();
       return;
     }
 
@@ -431,7 +442,65 @@ class SimpleProxyManager extends utils.Adapter {
       return;
     }
 
+    // HSTS nur für HTTPS-Backends
+    if (this.hstsHeader) {
+      res.setHeader('Strict-Transport-Security', this.hstsHeader);
+    }
+
     // Request an Backend weiterleiten
+    this.proxy.web(req, res, {
+      target: backend.target,
+      changeOrigin: backend.changeOrigin,
+    });
+  }
+
+  /**
+   * HTTP Request Handler: Bedient Backends ohne Zertifikat direkt.
+   * Backends mit Zertifikat werden auf HTTPS umgeleitet.
+   * ACME-Challenges werden immer weitergeleitet.
+   */
+  handleHttpRequest(req, res) {
+    // ACME-Challenge immer weiterleiten
+    if (req.url.startsWith('/.well-known/acme-challenge/')) {
+      const acmePort = this.config.acmePort || 8080;
+      this.proxy.web(req, res, { target: 'http://127.0.0.1:' + acmePort });
+      return;
+    }
+
+    const host = (req.headers.host || '').split(':')[0];
+    const clientIP = this.getClientIP(req);
+    const backend = this.backends[host];
+
+    if (this.config.logRequests) {
+      this.log.info(clientIP + ' -> HTTP ' + host + req.url);
+    }
+
+    // Unbekannter Host
+    if (!backend) {
+      this.log.debug('Unbekannter Host (HTTP): ' + host);
+      res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end('<h1>404 Not Found</h1><p>Unbekannte Domain.</p>');
+      return;
+    }
+
+    // Backend mit Zertifikat → auf HTTPS umleiten
+    if (backend.certificate) {
+      const httpsPort = this.config.httpsPort || 443;
+      const portSuffix = httpsPort === 443 ? '' : ':' + httpsPort;
+      res.writeHead(301, { Location: 'https://' + host + portSuffix + req.url });
+      res.end();
+      return;
+    }
+
+    // IP-Filterung
+    if (!this.isAllowedIP(clientIP, backend)) {
+      this.log.warn('Zugriff verweigert für ' + clientIP + ' auf ' + host + ' (HTTP)');
+      res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end('<h1>403 Forbidden</h1><p>Zugriff nur aus dem lokalen Netzwerk erlaubt.</p>');
+      return;
+    }
+
+    // Request an Backend weiterleiten (HTTP)
     this.proxy.web(req, res, {
       target: backend.target,
       changeOrigin: backend.changeOrigin,
@@ -442,8 +511,19 @@ class SimpleProxyManager extends utils.Adapter {
     const host = (req.headers.host || '').split(':')[0];
     const clientIP = this.getClientIP(req);
     const backend = this.backends[host];
+    const isHttps = req.socket.encrypted;
 
     if (!backend) {
+      socket.destroy();
+      return;
+    }
+
+    // HTTPS-Upgrade nur für Backends mit Zertifikat, HTTP-Upgrade nur für ohne
+    if (isHttps && !backend.certificate) {
+      socket.destroy();
+      return;
+    }
+    if (!isHttps && backend.certificate) {
       socket.destroy();
       return;
     }
@@ -485,125 +565,86 @@ class SimpleProxyManager extends utils.Adapter {
       }
     });
 
-    // HSTS-Header für alle Proxy-Antworten
+    // HSTS-Header für alle Proxy-Antworten (nur HTTPS)
     if (this.hstsHeader) {
-      this.proxy.on('proxyRes', (proxyRes) => {
-        proxyRes.headers['strict-transport-security'] = this.hstsHeader;
+      this.proxy.on('proxyRes', (proxyRes, req) => {
+        // HSTS nur für verschlüsselte Verbindungen setzen
+        if (req.socket.encrypted) {
+          proxyRes.headers['strict-transport-security'] = this.hstsHeader;
+        }
       });
     }
 
-    // HTTPS-Server mit SNI (Server Name Indication) für per-Host Zertifikate
-    // oder HTTP-Server wenn kein Zertifikat konfiguriert ist
-    if (sslOptions) {
-      // ---- HTTPS-Modus ----
-      this.httpsServer = https.createServer({
-        ...sslOptions,
-        SNICallback: (servername, cb) => {
-          const ctx = this.certContexts[servername];
-          cb(null, ctx || null); // null = Default-Zertifikat verwenden
-        },
-      }, (req, res) => {
-        this.handleRequest(req, res);
-      });
+    // ---- HTTPS-Server (läuft immer) ----
+    this.httpsServer = https.createServer({
+      ...sslOptions,
+      SNICallback: (servername, cb) => {
+        const ctx = this.certContexts[servername];
+        cb(null, ctx || null); // null = Default-Zertifikat verwenden
+      },
+    }, (req, res) => {
+      this.handleRequest(req, res);
+    });
 
-      // WebSocket-Upgrade Handler
-      this.httpsServer.on('upgrade', (req, socket, head) => {
-        this.handleUpgrade(req, socket, head);
-      });
+    this.httpsServer.on('upgrade', (req, socket, head) => {
+      this.handleUpgrade(req, socket, head);
+    });
 
-      // HTTPS-Server starten (Dual-Stack: IPv4 und IPv6)
-      const httpsPort = config.httpsPort || 443;
-      this.httpsServer.listen(httpsPort, '::', () => {
-        this.log.info('HTTPS Reverse Proxy läuft auf Port ' + httpsPort + ' (IPv4 + IPv6)');
-        this.log.info('Konfigurierte Backends:');
-        for (const [host, cfg] of Object.entries(this.backends)) {
-          this.log.info('  ' + host + ' -> ' + cfg.target + ' [cert: ' + (cfg.certificate || 'default') + ']' + (cfg.allowedNetworks.length > 0 ? ' (Netze: ' + cfg.allowedNetworks.join(', ') + ')' : ' (alle IPs)'));
-        }
-        this.setState('info.connection', true, true);
-      });
+    const httpsPort = config.httpsPort || 443;
+    this.httpsServer.listen(httpsPort, '::', () => {
+      this.log.info('HTTPS Reverse Proxy läuft auf Port ' + httpsPort + ' (IPv4 + IPv6)');
+      this.setState('info.connection', true, true);
+    });
 
-      this.httpsServer.on('error', (err) => {
-        this.log.error('HTTPS-Server Fehler: ' + err.message);
-        if (err.code === 'EADDRINUSE') {
-          this.log.error('Port ' + httpsPort + ' wird bereits verwendet!');
-        } else if (err.code === 'EACCES') {
-          this.log.error('Keine Berechtigung für Port ' + httpsPort + ' – siehe README für setcap');
-        }
-        this.setState('info.connection', false, true);
-      });
-
-      // HTTP -> HTTPS Redirect
-      const httpPort = config.httpPort;
-      if (httpPort && httpPort > 0) {
-        const acmePort = config.acmePort || 8080;
-
-        this.httpServer = http.createServer((req, res) => {
-          // ACME-Challenge an den ACME-Adapter weiterleiten
-          if (req.url.startsWith('/.well-known/acme-challenge/')) {
-            this.proxy.web(req, res, { target: 'http://127.0.0.1:' + acmePort });
-            return;
-          }
-          // Alles andere → HTTPS-Redirect
-          const host = (req.headers.host || '').split(':')[0];
-          res.writeHead(301, { Location: 'https://' + host + req.url });
-          res.end();
-        });
-
-        this.httpServer.listen(httpPort, '::', () => {
-          this.log.info('HTTP->HTTPS Redirect aktiv auf Port ' + httpPort + ' (IPv4 + IPv6)');
-        });
-
-        this.httpServer.on('error', (err) => {
-          this.log.error('HTTP-Server Fehler: ' + err.message);
-          if (err.code === 'EADDRINUSE') {
-            this.log.error('Port ' + httpPort + ' wird bereits verwendet!');
-          } else if (err.code === 'EACCES') {
-            this.log.error('Keine Berechtigung für Port ' + httpPort + ' – siehe README für setcap');
-          }
-        });
+    this.httpsServer.on('error', (err) => {
+      this.log.error('HTTPS-Server Fehler: ' + err.message);
+      if (err.code === 'EADDRINUSE') {
+        this.log.error('Port ' + httpsPort + ' wird bereits verwendet!');
+      } else if (err.code === 'EACCES') {
+        this.log.error('Keine Berechtigung für Port ' + httpsPort + ' – siehe README für setcap');
       }
+      this.setState('info.connection', false, true);
+    });
 
-      // Zertifikat-Auto-Reload
-      const checkIntervalMs = (config.certCheckHours || 1) * 3600000;
-      this.certCheckInterval = setInterval(() => {
-        this.checkCertificateRenewal();
-      }, checkIntervalMs);
+    // ---- HTTP-Server (läuft immer) ----
+    const httpPort = config.httpPort || 80;
+    this.httpServer = http.createServer((req, res) => {
+      this.handleHttpRequest(req, res);
+    });
 
-      this.log.info('Zertifikat-Prüfintervall: alle ' + (config.certCheckHours || 1) + ' Stunde(n)');
+    this.httpServer.on('upgrade', (req, socket, head) => {
+      this.handleUpgrade(req, socket, head);
+    });
 
-    } else {
-      // ---- HTTP-only Modus ----
-      const httpPort = config.httpPort || 80;
+    this.httpServer.listen(httpPort, '::', () => {
+      this.log.info('HTTP Server läuft auf Port ' + httpPort + ' (IPv4 + IPv6)');
+    });
 
-      this.httpServer = http.createServer((req, res) => {
-        this.handleRequest(req, res);
-      });
+    this.httpServer.on('error', (err) => {
+      this.log.error('HTTP-Server Fehler: ' + err.message);
+      if (err.code === 'EADDRINUSE') {
+        this.log.error('Port ' + httpPort + ' wird bereits verwendet!');
+      } else if (err.code === 'EACCES') {
+        this.log.error('Keine Berechtigung für Port ' + httpPort + ' – siehe README für setcap');
+      }
+    });
 
-      // WebSocket-Upgrade Handler
-      this.httpServer.on('upgrade', (req, socket, head) => {
-        this.handleUpgrade(req, socket, head);
-      });
-
-      this.httpServer.listen(httpPort, '::', () => {
-        this.log.info('HTTP Reverse Proxy (ohne TLS) läuft auf Port ' + httpPort + ' (IPv4 + IPv6)');
-        this.log.info('WARNUNG: Keine Verschlüsselung! Nur für interne Netzwerke geeignet.');
-        this.log.info('Konfigurierte Backends:');
-        for (const [host, cfg] of Object.entries(this.backends)) {
-          this.log.info('  ' + host + ' -> ' + cfg.target + (cfg.allowedNetworks.length > 0 ? ' (Netze: ' + cfg.allowedNetworks.join(', ') + ')' : ' (alle IPs)'));
-        }
-        this.setState('info.connection', true, true);
-      });
-
-      this.httpServer.on('error', (err) => {
-        this.log.error('HTTP-Server Fehler: ' + err.message);
-        if (err.code === 'EADDRINUSE') {
-          this.log.error('Port ' + httpPort + ' wird bereits verwendet!');
-        } else if (err.code === 'EACCES') {
-          this.log.error('Keine Berechtigung für Port ' + httpPort + ' – siehe README für setcap');
-        }
-        this.setState('info.connection', false, true);
-      });
+    // Backend-Übersicht loggen
+    this.log.info('Konfigurierte Backends:');
+    for (const [host, cfg] of Object.entries(this.backends)) {
+      const proto = cfg.certificate ? 'HTTPS' : 'HTTP';
+      const certInfo = cfg.certificate ? ' [cert: ' + cfg.certificate + ']' : '';
+      const netInfo = cfg.allowedNetworks.length > 0 ? ' (Netze: ' + cfg.allowedNetworks.join(', ') + ')' : ' (alle IPs)';
+      this.log.info('  ' + host + ' -> ' + cfg.target + ' [' + proto + ']' + certInfo + netInfo);
     }
+
+    // Zertifikat-Auto-Reload
+    const checkIntervalMs = (config.certCheckHours || 1) * 3600000;
+    this.certCheckInterval = setInterval(() => {
+      this.checkCertificateRenewal();
+    }, checkIntervalMs);
+
+    this.log.info('Zertifikat-Prüfintervall: alle ' + (config.certCheckHours || 1) + ' Stunde(n)');
   }
 
   // ============ MESSAGE HANDLER (Admin UI) ============
