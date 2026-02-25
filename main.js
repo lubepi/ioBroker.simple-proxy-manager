@@ -13,6 +13,7 @@ class SimpleProxyManager extends utils.Adapter {
       name: 'simple-proxy-manager',
     });
     this.on('ready', this.onReady.bind(this));
+    this.on('message', this.onMessage.bind(this));
     this.on('unload', this.onUnload.bind(this));
 
     this.httpsServer = null;
@@ -552,6 +553,36 @@ class SimpleProxyManager extends utils.Adapter {
     }, checkIntervalMs);
 
     this.log.info('Zertifikat-Prüfintervall: alle ' + (config.certCheckHours || 1) + ' Stunde(n)');
+  }
+
+  // ============ MESSAGE HANDLER (Admin UI) ============
+
+  /**
+   * Wird von der Admin-Oberfläche aufgerufen (selectSendTo).
+   * Liefert die verfügbaren Zertifikat-Collections aus system.certificates.
+   */
+  async onMessage(obj) {
+    if (!obj || !obj.command) return;
+
+    if (obj.command === 'getCertificateCollections') {
+      try {
+        const certsObj = await this.getForeignObjectAsync('system.certificates');
+        const collections = certsObj && certsObj.native && certsObj.native.collections
+          ? Object.keys(certsObj.native.collections)
+          : [];
+
+        const result = collections.map(name => ({ value: name, label: name }));
+
+        if (obj.callback) {
+          this.sendTo(obj.from, obj.command, result, obj.callback);
+        }
+      } catch (e) {
+        this.log.error('Fehler beim Abrufen der Zertifikat-Collections: ' + e.message);
+        if (obj.callback) {
+          this.sendTo(obj.from, obj.command, [], obj.callback);
+        }
+      }
+    }
   }
 
   // ============ ADAPTER STOP ============

@@ -63,12 +63,14 @@
           "sm": 12
         },
         "defaultCertificate": {
-          "type": "text",
+          "type": "selectSendTo",
+          "command": "getCertificateCollections",
           "label": "Standard-Zertifikat (Collection-Name)",
           "sm": 12,
           "md": 4,
-          "placeholder": "acme",
-          "help": "Name der Zertifikat-Collection aus system.certificates, die als Fallback für unbekannte Hostnamen verwendet wird. Beispiel: \"acme\" oder \"defaultCollection\"."
+          "allowNone": true,
+          "noneLabel": "(kein Fallback)",
+          "help": "Name der Zertifikat-Collection aus system.certificates, die als Fallback f\u00fcr unbekannte Hostnamen verwendet wird. Der Adapter muss laufen, damit die Liste angezeigt wird."
         },
         "certCheckHours": {
           "type": "number",
@@ -138,11 +140,13 @@
               "placeholder": "http://127.0.0.1:3000"
             },
             {
-              "type": "text",
+              "type": "selectSendTo",
+              "command": "getCertificateCollections",
               "attr": "certificate",
               "width": "13%",
               "title": "Zertifikat",
-              "placeholder": "acme"
+              "allowNone": true,
+              "noneLabel": "(Standard)"
             },
             {
               "type": "checkbox",
