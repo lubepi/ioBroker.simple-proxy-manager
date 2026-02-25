@@ -57,30 +57,48 @@ class SimpleProxyManager extends utils.Adapter {
       return;
     }
 
-    // HSTS-Header vorbereiten
+    // HSTS-Header vorbereiten (nur für HTTPS-Modus relevant)
     if (config.enableHSTS) {
       this.hstsHeader = 'max-age=' + (config.hstsMaxAge || 31536000) + '; includeSubDomains';
     }
 
-    // SSL-Zertifikate laden (pro Backend konfigurierbar via SNI)
-    const sslOptions = await this.loadAllCertificates();
-    if (!sslOptions) return;
+    // Prüfen ob Zertifikate konfiguriert sind
+    const hasCerts = config.defaultCertificate ||
+      Object.values(this.backends).some(b => b.certificate);
 
-    // Proxy starten
-    this.startProxy(sslOptions);
+    if (hasCerts) {
+      // HTTPS-Modus: SSL-Zertifikate laden (pro Backend konfigurierbar via SNI)
+      const sslOptions = await this.loadAllCertificates();
+      if (!sslOptions) return;
+      this.startProxy(sslOptions);
+    } else {
+      // HTTP-only Modus: kein Zertifikat konfiguriert
+      this.log.info('Keine Zertifikate konfiguriert – starte im HTTP-only Modus');
+      this.hstsHeader = null; // HSTS macht ohne HTTPS keinen Sinn
+      this.startProxy(null);
+    }
   }
 
   // ============ SSL ZERTIFIKATE AUS IOBROKER ============
 
   /**
-   * Löst eine Zertifikat-Collection aus system.certificates auf.
+   * Löst eine Zertifikat-Quelle aus system.certificates auf.
    * Unterstützt:
-   *  - ACME-Style: key (PEM) + chain[] (PEM-Array)
-   *  - Referenz-Style: key/cert verweisen auf Namen in native.certificates
+   *  - ACME-Style Collections: key (PEM) + chain[] (PEM-Array)
+   *  - Referenz-Style Collections: key/cert verweisen auf Namen in native.certificates
+   *  - Self-Signed: '__selfSigned__' → native.certificates.defaultPrivate/defaultPublic
    */
   resolveCertCollection(collectionName, certsObj) {
     const collections = certsObj.native.collections || {};
     const certificates = certsObj.native.certificates || {};
+
+    // Self-Signed Zertifikate (defaultPrivate/defaultPublic)
+    if (collectionName === '__selfSigned__') {
+      const key = certificates.defaultPrivate;
+      const cert = certificates.defaultPublic;
+      if (!key || !cert) return null;
+      return { key, cert, tsExpires: null, domains: [] };
+    }
 
     if (!collections[collectionName]) return null;
 
@@ -475,61 +493,105 @@ class SimpleProxyManager extends utils.Adapter {
     }
 
     // HTTPS-Server mit SNI (Server Name Indication) für per-Host Zertifikate
-    this.httpsServer = https.createServer({
-      ...sslOptions,
-      SNICallback: (servername, cb) => {
-        const ctx = this.certContexts[servername];
-        cb(null, ctx || null); // null = Default-Zertifikat verwenden
-      },
-    }, (req, res) => {
-      this.handleRequest(req, res);
-    });
+    // oder HTTP-Server wenn kein Zertifikat konfiguriert ist
+    if (sslOptions) {
+      // ---- HTTPS-Modus ----
+      this.httpsServer = https.createServer({
+        ...sslOptions,
+        SNICallback: (servername, cb) => {
+          const ctx = this.certContexts[servername];
+          cb(null, ctx || null); // null = Default-Zertifikat verwenden
+        },
+      }, (req, res) => {
+        this.handleRequest(req, res);
+      });
 
-    // WebSocket-Upgrade Handler
-    this.httpsServer.on('upgrade', (req, socket, head) => {
-      this.handleUpgrade(req, socket, head);
-    });
+      // WebSocket-Upgrade Handler
+      this.httpsServer.on('upgrade', (req, socket, head) => {
+        this.handleUpgrade(req, socket, head);
+      });
 
-    // HTTPS-Server starten (Dual-Stack: IPv4 und IPv6)
-    const httpsPort = config.httpsPort || 443;
-    this.httpsServer.listen(httpsPort, '::', () => {
-      this.log.info('HTTPS Reverse Proxy läuft auf Port ' + httpsPort + ' (IPv4 + IPv6)');
-      this.log.info('Konfigurierte Backends:');
-      for (const [host, cfg] of Object.entries(this.backends)) {
-        this.log.info('  ' + host + ' -> ' + cfg.target + ' [cert: ' + (cfg.certificate || 'default') + ']' + (cfg.allowedNetworks.length > 0 ? ' (Netze: ' + cfg.allowedNetworks.join(', ') + ')' : ' (alle IPs)'));
+      // HTTPS-Server starten (Dual-Stack: IPv4 und IPv6)
+      const httpsPort = config.httpsPort || 443;
+      this.httpsServer.listen(httpsPort, '::', () => {
+        this.log.info('HTTPS Reverse Proxy läuft auf Port ' + httpsPort + ' (IPv4 + IPv6)');
+        this.log.info('Konfigurierte Backends:');
+        for (const [host, cfg] of Object.entries(this.backends)) {
+          this.log.info('  ' + host + ' -> ' + cfg.target + ' [cert: ' + (cfg.certificate || 'default') + ']' + (cfg.allowedNetworks.length > 0 ? ' (Netze: ' + cfg.allowedNetworks.join(', ') + ')' : ' (alle IPs)'));
+        }
+        this.setState('info.connection', true, true);
+      });
+
+      this.httpsServer.on('error', (err) => {
+        this.log.error('HTTPS-Server Fehler: ' + err.message);
+        if (err.code === 'EADDRINUSE') {
+          this.log.error('Port ' + httpsPort + ' wird bereits verwendet!');
+        } else if (err.code === 'EACCES') {
+          this.log.error('Keine Berechtigung für Port ' + httpsPort + ' – siehe README für setcap');
+        }
+        this.setState('info.connection', false, true);
+      });
+
+      // HTTP -> HTTPS Redirect
+      const httpPort = config.httpPort;
+      if (httpPort && httpPort > 0) {
+        const acmePort = config.acmePort || 8080;
+
+        this.httpServer = http.createServer((req, res) => {
+          // ACME-Challenge an den ACME-Adapter weiterleiten
+          if (req.url.startsWith('/.well-known/acme-challenge/')) {
+            this.proxy.web(req, res, { target: 'http://127.0.0.1:' + acmePort });
+            return;
+          }
+          // Alles andere → HTTPS-Redirect
+          const host = (req.headers.host || '').split(':')[0];
+          res.writeHead(301, { Location: 'https://' + host + req.url });
+          res.end();
+        });
+
+        this.httpServer.listen(httpPort, '::', () => {
+          this.log.info('HTTP->HTTPS Redirect aktiv auf Port ' + httpPort + ' (IPv4 + IPv6)');
+        });
+
+        this.httpServer.on('error', (err) => {
+          this.log.error('HTTP-Server Fehler: ' + err.message);
+          if (err.code === 'EADDRINUSE') {
+            this.log.error('Port ' + httpPort + ' wird bereits verwendet!');
+          } else if (err.code === 'EACCES') {
+            this.log.error('Keine Berechtigung für Port ' + httpPort + ' – siehe README für setcap');
+          }
+        });
       }
-      this.setState('info.connection', true, true);
-    });
 
-    this.httpsServer.on('error', (err) => {
-      this.log.error('HTTPS-Server Fehler: ' + err.message);
-      if (err.code === 'EADDRINUSE') {
-        this.log.error('Port ' + httpsPort + ' wird bereits verwendet!');
-      } else if (err.code === 'EACCES') {
-        this.log.error('Keine Berechtigung für Port ' + httpsPort + ' – siehe README für setcap');
-      }
-      this.setState('info.connection', false, true);
-    });
+      // Zertifikat-Auto-Reload
+      const checkIntervalMs = (config.certCheckHours || 1) * 3600000;
+      this.certCheckInterval = setInterval(() => {
+        this.checkCertificateRenewal();
+      }, checkIntervalMs);
 
-    // HTTP -> HTTPS Redirect
-    const httpPort = config.httpPort;
-    if (httpPort && httpPort > 0) {
-      const acmePort = config.acmePort || 8080;
+      this.log.info('Zertifikat-Prüfintervall: alle ' + (config.certCheckHours || 1) + ' Stunde(n)');
+
+    } else {
+      // ---- HTTP-only Modus ----
+      const httpPort = config.httpPort || 80;
 
       this.httpServer = http.createServer((req, res) => {
-        // ACME-Challenge an den ACME-Adapter weiterleiten
-        if (req.url.startsWith('/.well-known/acme-challenge/')) {
-          this.proxy.web(req, res, { target: 'http://127.0.0.1:' + acmePort });
-          return;
-        }
-        // Alles andere → HTTPS-Redirect
-        const host = (req.headers.host || '').split(':')[0];
-        res.writeHead(301, { Location: 'https://' + host + req.url });
-        res.end();
+        this.handleRequest(req, res);
+      });
+
+      // WebSocket-Upgrade Handler
+      this.httpServer.on('upgrade', (req, socket, head) => {
+        this.handleUpgrade(req, socket, head);
       });
 
       this.httpServer.listen(httpPort, '::', () => {
-        this.log.info('HTTP->HTTPS Redirect aktiv auf Port ' + httpPort + ' (IPv4 + IPv6)');
+        this.log.info('HTTP Reverse Proxy (ohne TLS) läuft auf Port ' + httpPort + ' (IPv4 + IPv6)');
+        this.log.info('WARNUNG: Keine Verschlüsselung! Nur für interne Netzwerke geeignet.');
+        this.log.info('Konfigurierte Backends:');
+        for (const [host, cfg] of Object.entries(this.backends)) {
+          this.log.info('  ' + host + ' -> ' + cfg.target + (cfg.allowedNetworks.length > 0 ? ' (Netze: ' + cfg.allowedNetworks.join(', ') + ')' : ' (alle IPs)'));
+        }
+        this.setState('info.connection', true, true);
       });
 
       this.httpServer.on('error', (err) => {
@@ -539,16 +601,9 @@ class SimpleProxyManager extends utils.Adapter {
         } else if (err.code === 'EACCES') {
           this.log.error('Keine Berechtigung für Port ' + httpPort + ' – siehe README für setcap');
         }
+        this.setState('info.connection', false, true);
       });
     }
-
-    // Zertifikat-Auto-Reload
-    const checkIntervalMs = (config.certCheckHours || 1) * 3600000;
-    this.certCheckInterval = setInterval(() => {
-      this.checkCertificateRenewal();
-    }, checkIntervalMs);
-
-    this.log.info('Zertifikat-Prüfintervall: alle ' + (config.certCheckHours || 1) + ' Stunde(n)');
   }
 
   // ============ MESSAGE HANDLER (Admin UI) ============
@@ -563,11 +618,21 @@ class SimpleProxyManager extends utils.Adapter {
     if (obj.command === 'getCertificateCollections') {
       try {
         const certsObj = await this.getForeignObjectAsync('system.certificates');
-        const collections = certsObj && certsObj.native && certsObj.native.collections
-          ? Object.keys(certsObj.native.collections)
-          : [];
+        const result = [];
 
-        const result = collections.map(name => ({ value: name, label: name }));
+        if (certsObj && certsObj.native) {
+          // Self-Signed Zertifikate (defaultPrivate/defaultPublic)
+          const certs = certsObj.native.certificates || {};
+          if (certs.defaultPrivate && certs.defaultPublic) {
+            result.push({ value: '__selfSigned__', label: 'Standard (Self-Signed)' });
+          }
+
+          // Collections (ACME, manuelle, etc.)
+          const collections = Object.keys(certsObj.native.collections || {});
+          for (const name of collections) {
+            result.push({ value: name, label: name });
+          }
+        }
 
         if (obj.callback) {
           this.sendTo(obj.from, obj.command, result, obj.callback);

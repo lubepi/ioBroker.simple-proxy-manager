@@ -18,16 +18,16 @@
           "md": 4,
           "min": 1,
           "max": 65535,
-          "help": "Port für den HTTPS Reverse Proxy (Standard: 443). Ports unter 1024 benötigen setcap oder Root-Rechte."
+          "help": "Port f\u00fcr den HTTPS Reverse Proxy (Standard: 443). Wird nur verwendet wenn ein Zertifikat konfiguriert ist. Ports unter 1024 ben\u00f6tigen setcap oder Root-Rechte."
         },
         "httpPort": {
           "type": "number",
-          "label": "HTTP Port (Redirect)",
+          "label": "HTTP Port",
           "sm": 12,
           "md": 4,
           "min": 0,
           "max": 65535,
-          "help": "Port für HTTP→HTTPS Redirect. 0 = deaktiviert."
+          "help": "Ohne Zertifikat: Hauptport f\u00fcr den HTTP-Proxy. Mit Zertifikat: HTTP\u2192HTTPS Redirect (0 = deaktiviert)."
         },
         "acmePort": {
           "type": "number",
@@ -70,7 +70,7 @@
           "md": 4,
           "allowNone": true,
           "noneLabel": "(kein Fallback)",
-          "help": "Name der Zertifikat-Collection aus system.certificates, die als Fallback f\u00fcr unbekannte Hostnamen verwendet wird. Der Adapter muss laufen, damit die Liste angezeigt wird."
+          "help": "Zertifikat aus system.certificates als Fallback f\u00fcr unbekannte Hostnamen. Wenn kein Standard- und kein Backend-Zertifikat gesetzt ist, l\u00e4uft der Proxy im HTTP-only Modus (ohne Verschl\u00fcsselung)."
         },
         "certCheckHours": {
           "type": "number",
@@ -146,7 +146,7 @@
               "width": "13%",
               "title": "Zertifikat",
               "allowNone": true,
-              "noneLabel": "(Standard)"
+              "noneLabel": "(kein Zertifikat)"
             },
             {
               "type": "text",
@@ -167,7 +167,7 @@
         "_help": {
           "type": "staticText",
           "sm": 12,
-          "text": "**Hostname**: Domain die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Zertifikat**: Zertifikat-Collection aus `system.certificates`. **Erlaubte Netze**: Kommaseparierte CIDR-Netzwerke/IPs (IPv4 + IPv6). Wenn leer, ist der Zugriff von überall erlaubt. **Change Origin**: Host-Header auf Ziel-IP umschreiben (z.B. für FritzBox)."
+          "text": "**Hostname**: Domain die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Zertifikat**: Zertifikat aus `system.certificates` (Collections oder Self-Signed). Wenn kein Zertifikat zugewiesen, wird das Standard-Zertifikat verwendet. Wenn nirgends ein Zertifikat gesetzt ist, l\u00e4uft der Proxy im HTTP-only Modus. **Erlaubte Netze**: Kommaseparierte CIDR-Netzwerke/IPs (IPv4 + IPv6). Wenn leer, ist der Zugriff von \u00fcberall erlaubt. **Change Origin**: Host-Header auf Ziel-IP umschreiben (z.B. f\u00fcr FritzBox)."
         }
       }
     }
