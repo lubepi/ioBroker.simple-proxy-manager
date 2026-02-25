@@ -62,11 +62,11 @@ class SimpleProxyManager extends utils.Adapter {
       this.hstsHeader = 'max-age=' + (config.hstsMaxAge || 31536000) + '; includeSubDomains';
     }
 
-    // SSL-Zertifikate laden (Self-Signed als Fallback)
+    // SSL-Zertifikate laden (null = Fehler, { httpOnly: true } = kein HTTPS-Backend)
     const sslOptions = await this.loadAllCertificates();
-    if (!sslOptions) return;
+    if (sslOptions === null) return;
 
-    // Proxy starten (HTTP + HTTPS immer parallel)
+    // Proxy starten (HTTP immer, HTTPS nur wenn Zertifikate vorhanden)
     this.startProxy(sslOptions);
   }
 
@@ -143,8 +143,8 @@ class SimpleProxyManager extends utils.Adapter {
       if (defaultCertName) usedCollections.add(defaultCertName);
 
       if (usedCollections.size === 0) {
-        this.log.info('Keine Zertifikat-Collections konfiguriert – verwende Self-Signed als Fallback');
-        usedCollections.add('__selfSigned__');
+        this.log.info('Keine Backends mit Zertifikat konfiguriert – nur HTTP-Server wird gestartet');
+        return { httpOnly: true };
       }
 
       let defaultSslOptions = null;
@@ -198,15 +198,8 @@ class SimpleProxyManager extends utils.Adapter {
       }
 
       if (!defaultSslOptions) {
-        // Letzter Fallback: Self-Signed laden
-        this.log.info('Kein Zertifikat geladen – versuche Self-Signed als Fallback');
-        const selfSigned = this.resolveCertCollection('__selfSigned__', obj);
-        if (selfSigned) {
-          defaultSslOptions = { key: selfSigned.key, cert: selfSigned.cert };
-        } else {
-          this.log.error('Kein gültiges Zertifikat und kein Self-Signed verfügbar – HTTPS-Server kann nicht starten');
-          return null;
-        }
+        this.log.error('Alle konfigurierten Zertifikat-Collections konnten nicht geladen werden – HTTPS-Server kann nicht starten');
+        return null;
       }
 
       return defaultSslOptions;
@@ -575,7 +568,10 @@ class SimpleProxyManager extends utils.Adapter {
       });
     }
 
-    // ---- HTTPS-Server (läuft immer) ----
+    // ---- HTTPS-Server (nur wenn Zertifikate konfiguriert) ----
+    if (sslOptions.httpOnly) {
+      this.log.info('HTTP-only Modus – kein HTTPS-Server gestartet');
+    } else {
     this.httpsServer = https.createServer({
       ...sslOptions,
       SNICallback: (servername, cb) => {
@@ -605,6 +601,7 @@ class SimpleProxyManager extends utils.Adapter {
       }
       this.setState('info.connection', false, true);
     });
+    } // end if (!sslOptions.httpOnly)
 
     // ---- HTTP-Server (läuft immer) ----
     const httpPort = config.httpPort || 80;
