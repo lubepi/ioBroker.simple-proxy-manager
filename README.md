@@ -6,13 +6,13 @@ Einfacher HTTPS Reverse Proxy Manager für ioBroker.
 
 - **HTTPS Reverse Proxy** mit virtuellen Hosts (SNI)
 - **Konfigurierbare Backends** über die Admin-Oberfläche
-- **IP-Filterung** für interne Dienste (Subnet-basiert)
+- **IP-Filterung** für interne Dienste (CIDR-basiert, IPv4 + IPv6, mehrere Netzwerke)
 - **HTTP → HTTPS Redirect** mit ACME-Challenge-Weiterleitung
 - **Automatischer SSL-Zertifikat-Reload** bei ACME-Erneuerung
 - **Zertifikats-Ablaufwarnung** im Log
 - **HSTS** (Strict-Transport-Security)
 - **WebSocket-Unterstützung** (z.B. für iobroker Admin)
-- **Dual-Stack** IPv4 + IPv6 mit IPv6-Blockierung für interne Dienste
+- **Dual-Stack** IPv4 + IPv6
 - **Change Origin** Option (z.B. für FritzBox)
 
 ## Voraussetzungen
@@ -82,16 +82,16 @@ Jedes Backend definiert einen virtuellen Host:
 | **Hostname** | Domain, die per DNS auf diesen Server zeigt |
 | **Ziel-URL** | Backend-Adresse (`http://IP:Port`) |
 | **Extern** | Zugriff von außerhalb des lokalen Netzes erlaubt |
-| **Erlaubtes Subnet** | IPv4-Präfix für lokalen Zugriff (z.B. `192.168.0.`) |
+| **Erlaubte Netze** | Kommaseparierte CIDR-Netzwerke/IPs für lokalen Zugriff (z.B. `192.168.0.0/24, fd00::/8`) |
 | **Change Origin** | Host-Header auf Ziel-IP umschreiben |
 
 ### Beispiel-Konfiguration
 
-| Hostname | Ziel-URL | Extern | Subnet | Change Origin |
+| Hostname | Ziel-URL | Extern | Erlaubte Netze | Change Origin |
 |---|---|---|---|---|
 | `wakeup.example.de` | `http://127.0.0.1:3000` | ✓ | – | ✗ |
-| `iobroker.example.de` | `http://127.0.0.1:8081` | ✗ | `192.168.0.` | ✗ |
-| `fritz.example.de` | `http://192.168.0.1` | ✗ | `192.168.0.` | ✓ |
+| `iobroker.example.de` | `http://127.0.0.1:8081` | ✗ | `192.168.0.0/24` | ✗ |
+| `fritz.example.de` | `http://192.168.0.1` | ✗ | `192.168.0.0/24, 10.0.0.0/8` | ✓ |
 
 ## States
 

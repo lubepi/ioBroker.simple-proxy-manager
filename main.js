@@ -36,10 +36,15 @@ class SimpleProxyManager extends utils.Adapter {
 
     for (const entry of config.backends) {
       if (!entry.enabled || !entry.hostname || !entry.target) continue;
+      // allowedNetworks: kommaseparierter String → Array
+      let networks = [];
+      if (entry.allowedNetworks) {
+        networks = entry.allowedNetworks.split(',').map(s => s.trim()).filter(Boolean);
+      }
       this.backends[entry.hostname] = {
         target: entry.target,
         allowExternal: !!entry.allowExternal,
-        allowedSubnet: entry.allowedSubnet || '',
+        allowedNetworks: networks,
         changeOrigin: !!entry.changeOrigin,
       };
     }
@@ -141,6 +146,81 @@ class SimpleProxyManager extends utils.Adapter {
     }
   }
 
+  // ============ IP-PARSING (CIDR) ============
+
+  static parseIPv4(ip) {
+    const parts = ip.split('.');
+    if (parts.length !== 4) return null;
+    const bytes = parts.map(Number);
+    if (bytes.some(b => isNaN(b) || b < 0 || b > 255)) return null;
+    return [0,0,0,0, 0,0,0,0, 0,0,0xff,0xff, bytes[0], bytes[1], bytes[2], bytes[3]];
+  }
+
+  static parseIPv6(ip) {
+    if (ip.startsWith('::ffff:') && ip.includes('.')) {
+      return SimpleProxyManager.parseIPv4(ip.substring(7));
+    }
+    const halves = ip.split('::');
+    if (halves.length > 2) return null;
+    let groups;
+    if (halves.length === 2) {
+      const left = halves[0] ? halves[0].split(':') : [];
+      const right = halves[1] ? halves[1].split(':') : [];
+      const missing = 8 - left.length - right.length;
+      if (missing < 0) return null;
+      groups = [...left, ...Array(missing).fill('0'), ...right];
+    } else {
+      groups = ip.split(':');
+    }
+    if (groups.length !== 8) return null;
+    const bytes = [];
+    for (const g of groups) {
+      const val = parseInt(g, 16);
+      if (isNaN(val) || val < 0 || val > 0xffff) return null;
+      bytes.push((val >> 8) & 0xff, val & 0xff);
+    }
+    return bytes;
+  }
+
+  static parseIP(ip) {
+    if (!ip) return null;
+    ip = ip.trim();
+    if (ip.startsWith('::ffff:') && ip.includes('.')) {
+      return SimpleProxyManager.parseIPv4(ip.substring(7));
+    }
+    if (ip.includes(':')) return SimpleProxyManager.parseIPv6(ip);
+    return SimpleProxyManager.parseIPv4(ip);
+  }
+
+  static parseCIDR(cidr) {
+    cidr = cidr.trim();
+    const parts = cidr.split('/');
+    const ipStr = parts[0];
+    const isV6 = ipStr.includes(':');
+    const bytes = SimpleProxyManager.parseIP(ipStr);
+    if (!bytes) return null;
+    let prefixLen;
+    if (parts.length === 2) {
+      prefixLen = parseInt(parts[1], 10);
+      if (isNaN(prefixLen)) return null;
+      if (!isV6) prefixLen += 96;
+    } else {
+      prefixLen = 128;
+    }
+    if (prefixLen < 0 || prefixLen > 128) return null;
+    return { bytes, prefixLen };
+  }
+
+  static ipMatchesCIDR(ipBytes, network) {
+    for (let i = 0; i < 16; i++) {
+      const bits = Math.min(8, Math.max(0, network.prefixLen - i * 8));
+      if (bits === 0) break;
+      const mask = (0xff << (8 - bits)) & 0xff;
+      if ((ipBytes[i] & mask) !== (network.bytes[i] & mask)) return false;
+    }
+    return true;
+  }
+
   // ============ IP-PRÜFUNG ============
 
   getClientIP(req) {
@@ -150,7 +230,7 @@ class SimpleProxyManager extends utils.Adapter {
     const ip = req.socket.remoteAddress || (req.connection && req.connection.remoteAddress);
 
     // IPv6-mapped IPv4 Adressen konvertieren (::ffff:192.168.0.1 -> 192.168.0.1)
-    if (ip && ip.startsWith('::ffff:')) return ip.substring(7);
+    if (ip && ip.startsWith('::ffff:') && ip.includes('.')) return ip.substring(7);
 
     return ip;
   }
@@ -161,12 +241,18 @@ class SimpleProxyManager extends utils.Adapter {
     // Localhost ist immer erlaubt
     if (clientIP === '127.0.0.1' || clientIP === '::1') return true;
 
-    // IPv6-Adressen für interne Dienste blockieren (kein Subnet-Matching möglich)
-    if (clientIP.includes(':')) return false;
+    const networks = backend.allowedNetworks;
+    if (!networks || networks.length === 0) return false;
 
-    // IPv4: Prüfe ob IP im erlaubten Subnet liegt
-    if (!backend.allowedSubnet) return false;
-    return clientIP.startsWith(backend.allowedSubnet);
+    const ipBytes = SimpleProxyManager.parseIP(clientIP);
+    if (!ipBytes) return false;
+
+    for (const cidr of networks) {
+      const network = SimpleProxyManager.parseCIDR(cidr);
+      if (!network) continue;
+      if (SimpleProxyManager.ipMatchesCIDR(ipBytes, network)) return true;
+    }
+    return false;
   }
 
   // ============ REQUEST HANDLER ============
@@ -282,7 +368,7 @@ class SimpleProxyManager extends utils.Adapter {
       this.log.info('HTTPS Reverse Proxy läuft auf Port ' + httpsPort + ' (IPv4 + IPv6)');
       this.log.info('Konfigurierte Backends:');
       for (const [host, cfg] of Object.entries(this.backends)) {
-        this.log.info('  ' + host + ' -> ' + cfg.target + (cfg.allowExternal ? ' (extern)' : ' (lokal: ' + cfg.allowedSubnet + '*)'));
+        this.log.info('  ' + host + ' -> ' + cfg.target + (cfg.allowExternal ? ' (extern)' : ' (lokal: ' + cfg.allowedNetworks.join(', ') + ')'));
       }
       this.setState('info.connection', true, true);
     });

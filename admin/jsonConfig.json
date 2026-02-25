@@ -138,10 +138,10 @@
             },
             {
               "type": "text",
-              "attr": "allowedSubnet",
+              "attr": "allowedNetworks",
               "width": "22%",
-              "title": "Erlaubtes Subnet",
-              "placeholder": "192.168.0."
+              "title": "Erlaubte Netze",
+              "placeholder": "192.168.0.0/24, fd00::/8"
             },
             {
               "type": "checkbox",
@@ -155,7 +155,7 @@
         "_help": {
           "type": "staticText",
           "sm": 12,
-          "text": "**Hostname**: Domain die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Extern**: Zugriff von außerhalb des lokalen Netzes erlaubt. **Erlaubtes Subnet**: IPv4-Präfix für lokalen Zugriff (nur relevant wenn nicht extern, z.B. `192.168.0.`). **Change Origin**: Host-Header auf Ziel-IP umschreiben (nötig z.B. für FritzBox)."
+          "text": "**Hostname**: Domain die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Extern**: Zugriff von außerhalb des lokalen Netzes erlaubt. **Erlaubte Netze**: Kommaseparierte Liste von CIDR-Netzwerken oder Einzel-IPs (IPv4 und IPv6). Nur relevant wenn nicht extern. Beispiele: `192.168.0.0/24`, `10.0.0.0/8`, `fd00::/8`, `192.168.0.5`. **Change Origin**: Host-Header auf Ziel-IP umschreiben (nötig z.B. für FritzBox)."
         }
       }
     }
