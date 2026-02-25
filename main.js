@@ -659,7 +659,9 @@ class SimpleProxyManager extends utils.Adapter {
     if (obj.command === 'getCertificateCollections') {
       try {
         const certsObj = await this.getForeignObjectAsync('system.certificates');
-        const result = [];
+        const result = [
+          { value: '', label: '(kein Zertifikat)' },
+        ];
 
         if (certsObj && certsObj.native) {
           // Self-Signed Zertifikate (defaultPrivate/defaultPublic)
