@@ -674,7 +674,7 @@ class SimpleProxyManager extends utils.Adapter {
           // Self-Signed Zertifikate (defaultPrivate/defaultPublic)
           const certs = certsObj.native.certificates || {};
           if (certs.defaultPrivate && certs.defaultPublic) {
-            result.push({ value: '__selfSigned__', label: 'Standard (Self-Signed)' });
+            result.push({ value: '__selfSigned__', label: 'default' });
           }
 
           // Eigene Zertifikate nach Namenskonvention {name}Private / {name}Public / {name}Chained
@@ -690,7 +690,7 @@ class SimpleProxyManager extends utils.Adapter {
             }
           }
           for (const base of [...certBases].sort()) {
-            result.push({ value: '__cert__:' + base, label: base + ' (eigenes Zertifikat)' });
+            result.push({ value: '__cert__:' + base, label: base });
           }
 
           // Collections (ACME, manuelle, etc.)
