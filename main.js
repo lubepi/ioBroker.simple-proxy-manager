@@ -423,10 +423,22 @@ class SimpleProxyManager extends utils.Adapter {
   // ============ REQUEST HANDLER ============
 
   /**
+   * Entfernt eingehende X-Forwarded-* Headers um Spoofing zu verhindern.
+   * http-proxy (xfwd:true) setzt diese anschließend mit korrekten Werten vom Socket.
+   */
+  stripForwardedHeaders(req) {
+    delete req.headers['x-forwarded-for'];
+    delete req.headers['x-forwarded-proto'];
+    delete req.headers['x-forwarded-host'];
+    delete req.headers['x-forwarded-port'];
+  }
+
+  /**
    * HTTPS Request Handler: Bedient nur Backends die ein Zertifikat haben.
    * Backends ohne Zertifikat bekommen einen Hinweis auf HTTP.
    */
   handleRequest(req, res) {
+    this.stripForwardedHeaders(req);
     const host = (req.headers.host || '').split(':')[0].toLowerCase();
     const clientIP = this.getClientIP(req);
     const backend = this.backends[host];
@@ -482,6 +494,7 @@ class SimpleProxyManager extends utils.Adapter {
    * ACME-Challenges werden immer weitergeleitet.
    */
   handleHttpRequest(req, res) {
+    this.stripForwardedHeaders(req);
     // ACME-Challenge weiterleiten (nur wenn acmePort konfiguriert)
     if (this.config.acmePort && req.url.startsWith('/.well-known/acme-challenge/')) {
       this.proxy.web(req, res, { target: 'http://127.0.0.1:' + this.config.acmePort });
@@ -529,6 +542,7 @@ class SimpleProxyManager extends utils.Adapter {
   }
 
   handleUpgrade(req, socket, head) {
+    this.stripForwardedHeaders(req);
     const host = (req.headers.host || '').split(':')[0].toLowerCase();
     const clientIP = this.getClientIP(req);
     const backend = this.backends[host];
