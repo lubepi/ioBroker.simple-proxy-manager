@@ -93,11 +93,11 @@ class SimpleProxyManager extends utils.Adapter {
       return;
     }
 
-    // SSL-Zertifikate laden (null = Fehler, { httpOnly: true } = kein HTTPS-Backend)
+    // SSL-Zertifikate laden
     const sslOptions = await this.loadAllCertificates();
     if (sslOptions === null) return;
 
-    // Proxy starten (HTTP immer, HTTPS nur wenn Zertifikate vorhanden)
+    // Proxy starten (HTTP + HTTPS)
     this.startProxy(sslOptions);
   }
 
@@ -171,14 +171,9 @@ class SimpleProxyManager extends utils.Adapter {
         if (backend.certificate) usedCollections.add(backend.certificate);
       }
 
-      // Default-Zertifikat aus Konfiguration hinzufügen
-      const defaultCertName = this.config.defaultCertificate;
-      if (defaultCertName) usedCollections.add(defaultCertName);
-
-      if (usedCollections.size === 0) {
-        this.log.info('Keine Backends mit Zertifikat konfiguriert – nur HTTP-Server wird gestartet');
-        return { httpOnly: true };
-      }
+      // Default-Zertifikat: explizit konfiguriertes oder ioBroker-Standard ("default")
+      const defaultCertName = this.config.defaultCertificate || 'default';
+      usedCollections.add(defaultCertName);
 
       let defaultSslOptions = null;
       let minDaysLeft = Infinity;
@@ -256,11 +251,11 @@ class SimpleProxyManager extends utils.Adapter {
       let earliestExpiry = null;
       let newDefault = null;
 
-      const defaultCertName = this.config.defaultCertificate;
+      const defaultCertName = this.config.defaultCertificate || 'default';
       const checkedCollections = new Set();
 
-      // Default-Zertifikat auch prüfen wenn kein Backend es direkt nutzt
-      if (defaultCertName) checkedCollections.add(defaultCertName);
+      // Default-Zertifikat immer prüfen
+      checkedCollections.add(defaultCertName);
       for (const backend of Object.values(this.backends)) {
         if (backend.certificate) checkedCollections.add(backend.certificate);
       }
@@ -604,51 +599,47 @@ class SimpleProxyManager extends utils.Adapter {
       });
     }
 
-    // ---- HTTPS-Server (nur wenn Zertifikate konfiguriert) ----
-    if (sslOptions.httpOnly) {
-      this.log.info('HTTP-only Modus – kein HTTPS-Server gestartet');
-    } else {
-      this.httpsServer = https.createServer({
-        ...sslOptions,
-        SNICallback: (servername, cb) => {
-          const name = (servername || '').toLowerCase();
-          const ctx = this.certContexts[name];
-          if (ctx) {
-            // Bekannter Host mit eigenem Zertifikat
-            cb(null, ctx);
-          } else if (this.backends[name]) {
-            // Backend ohne eigenes Zertifikat → Default-Kontext für HTTP-Redirect
-            cb(null, null);
-          } else {
-            // Unbekannter Hostname → TLS-Handshake ablehnen
-            this.log.debug('TLS-Handshake abgelehnt für unbekannten Host: ' + servername);
-            cb(new Error('Unknown hostname'));
-          }
-        },
-      }, (req, res) => {
-        this.handleRequest(req, res);
-      });
-
-      this.httpsServer.on('upgrade', (req, socket, head) => {
-        this.handleUpgrade(req, socket, head);
-      });
-
-      const httpsPort = config.httpsPort || 443;
-      this.httpsServer.listen(httpsPort, '::', () => {
-        this.log.info('HTTPS Reverse Proxy läuft auf Port ' + httpsPort + ' (IPv4 + IPv6)');
-        this.setState('info.connection', true, true);
-      });
-
-      this.httpsServer.on('error', (err) => {
-        this.log.error('HTTPS-Server Fehler: ' + err.message);
-        if (err.code === 'EADDRINUSE') {
-          this.log.error('Port ' + httpsPort + ' wird bereits verwendet!');
-        } else if (err.code === 'EACCES') {
-          this.log.error('Keine Berechtigung für Port ' + httpsPort + ' – siehe README für setcap');
+    // ---- HTTPS-Server (immer, Default-Zertifikat ist Pflicht) ----
+    this.httpsServer = https.createServer({
+      ...sslOptions,
+      SNICallback: (servername, cb) => {
+        const name = (servername || '').toLowerCase();
+        const ctx = this.certContexts[name];
+        if (ctx) {
+          // Bekannter Host mit eigenem Zertifikat
+          cb(null, ctx);
+        } else if (this.backends[name]) {
+          // Backend ohne eigenes Zertifikat → Default-Kontext für HTTP-Redirect
+          cb(null, null);
+        } else {
+          // Unbekannter Hostname → TLS-Handshake ablehnen
+          this.log.debug('TLS-Handshake abgelehnt für unbekannten Host: ' + servername);
+          cb(new Error('Unknown hostname'));
         }
-        this.setState('info.connection', false, true);
-      });
-    }
+      },
+    }, (req, res) => {
+      this.handleRequest(req, res);
+    });
+
+    this.httpsServer.on('upgrade', (req, socket, head) => {
+      this.handleUpgrade(req, socket, head);
+    });
+
+    const httpsPort = config.httpsPort || 443;
+    this.httpsServer.listen(httpsPort, '::', () => {
+      this.log.info('HTTPS Reverse Proxy läuft auf Port ' + httpsPort + ' (IPv4 + IPv6)');
+      this.setState('info.connection', true, true);
+    });
+
+    this.httpsServer.on('error', (err) => {
+      this.log.error('HTTPS-Server Fehler: ' + err.message);
+      if (err.code === 'EADDRINUSE') {
+        this.log.error('Port ' + httpsPort + ' wird bereits verwendet!');
+      } else if (err.code === 'EACCES') {
+        this.log.error('Keine Berechtigung für Port ' + httpsPort + ' – siehe README für setcap');
+      }
+      this.setState('info.connection', false, true);
+    });
 
     // ---- HTTP-Server (läuft immer) ----
     const httpPort = config.httpPort || 80;
@@ -662,10 +653,6 @@ class SimpleProxyManager extends utils.Adapter {
 
     this.httpServer.listen(httpPort, '::', () => {
       this.log.info('HTTP Server läuft auf Port ' + httpPort + ' (IPv4 + IPv6)');
-      // Im HTTP-only Modus connection-State hier setzen
-      if (sslOptions.httpOnly) {
-        this.setState('info.connection', true, true);
-      }
     });
 
     this.httpServer.on('error', (err) => {
