@@ -91,6 +91,16 @@ class SimpleProxyManager extends utils.Adapter {
       return { key, cert, tsExpires: null, domains: [] };
     }
 
+    // Eigene Zertifikate nach Namenskonvention: __cert__:{baseName}
+    // Schlüssel: {baseName}Private, Zertifikat: {baseName}Chained oder {baseName}Public
+    if (collectionName.startsWith('__cert__:')) {
+      const baseName = collectionName.substring('__cert__:'.length);
+      const key = certificates[baseName + 'Private'];
+      const cert = certificates[baseName + 'Chained'] || certificates[baseName + 'Public'];
+      if (!key || !cert) return null;
+      return { key, cert, tsExpires: null, domains: [] };
+    }
+
     if (!collections[collectionName]) return null;
 
     const coll = collections[collectionName];
@@ -665,6 +675,22 @@ class SimpleProxyManager extends utils.Adapter {
           const certs = certsObj.native.certificates || {};
           if (certs.defaultPrivate && certs.defaultPublic) {
             result.push({ value: '__selfSigned__', label: 'Standard (Self-Signed)' });
+          }
+
+          // Eigene Zertifikate nach Namenskonvention {name}Private / {name}Public / {name}Chained
+          const certs = certsObj.native.certificates || {};
+          const certBases = new Set();
+          for (const key of Object.keys(certs)) {
+            if (key === 'defaultPrivate' || key === 'defaultPublic') continue;
+            if (key.endsWith('Private')) {
+              const base = key.slice(0, -'Private'.length);
+              if (certs[base + 'Public'] || certs[base + 'Chained']) {
+                certBases.add(base);
+              }
+            }
+          }
+          for (const base of [...certBases].sort()) {
+            result.push({ value: '__cert__:' + base, label: base + ' (eigenes Zertifikat)' });
           }
 
           // Collections (ACME, manuelle, etc.)
