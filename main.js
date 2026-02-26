@@ -77,22 +77,16 @@ class SimpleProxyManager extends utils.Adapter {
    * Unterstützt:
    *  - ACME-Style Collections: key (PEM) + chain[] (PEM-Array)
    *  - Referenz-Style Collections: key/cert verweisen auf Namen in native.certificates
-   *  - Self-Signed: '__selfSigned__' → native.certificates.defaultPrivate/defaultPublic
+   *  - Eigene Zertifikate nach Namenskonvention: __cert__:{baseName}
+   *    → {baseName}Private (Key), {baseName}Chained oder {baseName}Public (Cert)
+   *    Gilt auch für das ioBroker-Standard-Zertifikat (Basisname: "default")
    */
   resolveCertCollection(collectionName, certsObj) {
     const collections = certsObj.native.collections || {};
     const certificates = certsObj.native.certificates || {};
 
-    // Self-Signed Zertifikate (defaultPrivate/defaultPublic)
-    if (collectionName === '__selfSigned__') {
-      const key = certificates.defaultPrivate;
-      const cert = certificates.defaultPublic;
-      if (!key || !cert) return null;
-      return { key, cert, tsExpires: null, domains: [] };
-    }
-
     // Eigene Zertifikate nach Namenskonvention: __cert__:{baseName}
-    // Schlüssel: {baseName}Private, Zertifikat: {baseName}Chained oder {baseName}Public
+    // Gilt auch für das ioBroker-Standard-Zertifikat (baseName = "default")
     if (collectionName.startsWith('__cert__:')) {
       const baseName = collectionName.substring('__cert__:'.length);
       const key = certificates[baseName + 'Private'];
@@ -673,15 +667,10 @@ class SimpleProxyManager extends utils.Adapter {
         if (certsObj && certsObj.native) {
           const certs = certsObj.native.certificates || {};
 
-          // Self-Signed Zertifikate (defaultPrivate/defaultPublic)
-          if (certs.defaultPrivate && certs.defaultPublic) {
-            result.push({ value: '__selfSigned__', label: 'ioBroker (Self-Signed)' });
-          }
-
-          // Eigene Zertifikate nach Namenskonvention {name}Private / {name}Public / {name}Chained
+          // Zertifikate nach Namenskonvention {name}Private / {name}Public / {name}Chained
+          // Erfasst auch das ioBroker-Standard-Zertifikat (Basisname: "default")
           const certBases = new Set();
           for (const key of Object.keys(certs)) {
-            if (key === 'defaultPrivate' || key === 'defaultPublic') continue;
             if (key.endsWith('Private')) {
               const base = key.slice(0, -'Private'.length);
               if (certs[base + 'Public'] || certs[base + 'Chained']) {
