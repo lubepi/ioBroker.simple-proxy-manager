@@ -171,8 +171,8 @@ class SimpleProxyManager extends utils.Adapter {
         if (backend.certificate) usedCollections.add(backend.certificate);
       }
 
-      // Default-Zertifikat: explizit konfiguriertes oder ioBroker-Standard ("default")
-      const defaultCertName = this.config.defaultCertificate || 'default';
+      // ioBroker-Standard-Zertifikat (immer "default")
+      const defaultCertName = 'default';
       usedCollections.add(defaultCertName);
 
       let defaultSslOptions = null;
@@ -198,7 +198,7 @@ class SimpleProxyManager extends utils.Adapter {
           }
         }
 
-        // Default-Zertifikat: explizit konfiguriertes oder erstes verfügbares
+        // Default-Zertifikat für HTTPS-Server
         if (collName === defaultCertName || !defaultSslOptions) {
           defaultSslOptions = { key: resolved.key, cert: resolved.cert };
         }
@@ -211,7 +211,7 @@ class SimpleProxyManager extends utils.Adapter {
             earliestExpiry = new Date(resolved.tsExpires);
           }
           this.log.info('Zertifikat "' + collName + '": Domains=' + resolved.domains.join(', ') + ', gültig bis ' + new Date(resolved.tsExpires).toLocaleDateString('de-DE'));
-          if (daysLeft < (this.config.certWarnDays || 14)) {
+          if (this.config.certWarnDays > 0 && daysLeft < this.config.certWarnDays) {
             this.log.warn('Zertifikat "' + collName + '" läuft in ' + daysLeft + ' Tagen ab!');
           }
         } else {
@@ -251,7 +251,7 @@ class SimpleProxyManager extends utils.Adapter {
       let earliestExpiry = null;
       let newDefault = null;
 
-      const defaultCertName = this.config.defaultCertificate || 'default';
+      const defaultCertName = 'default';
       const checkedCollections = new Set();
 
       // Default-Zertifikat immer prüfen
@@ -286,7 +286,7 @@ class SimpleProxyManager extends utils.Adapter {
             minDaysLeft = daysLeft;
             earliestExpiry = new Date(resolved.tsExpires);
           }
-          if (daysLeft < (this.config.certWarnDays || 14)) {
+          if (this.config.certWarnDays > 0 && daysLeft < this.config.certWarnDays) {
             this.log.warn('Zertifikat "' + collName + '" läuft in ' + daysLeft + ' Tagen ab!');
           }
         }

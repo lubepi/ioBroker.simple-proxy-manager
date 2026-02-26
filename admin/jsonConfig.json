@@ -18,7 +18,7 @@
           "md": 4,
           "min": 1,
           "max": 65535,
-          "help": "Port für den HTTPS Reverse Proxy (Standard: 443). Ports unter 1024 benötigen setcap oder Root-Rechte."
+          "help": "Port für den HTTPS Reverse Proxy (Standard: 443)."
         },
         "httpPort": {
           "type": "number",
@@ -34,7 +34,7 @@
           "label": "ACME Adapter Port",
           "sm": 12,
           "md": 4,
-          "help": "Interner Port des ACME-Adapters für ACME-Challenge-Weiterleitung."
+          "help": "Interner Port des ACME-Adapters für HTTP-01-Challenge-Weiterleitung."
         },
         "_securityHeader": {
           "type": "header",
@@ -62,15 +62,6 @@
           "size": 4,
           "sm": 12
         },
-        "defaultCertificate": {
-          "type": "selectSendTo",
-          "command": "getCertificateCollections",
-          "label": "Standard-Zertifikat (Collection-Name)",
-          "sm": 12,
-          "md": 4,
-
-          "help": "Zertifikat aus system.certificates als Fallback für HTTPS-Anfragen an unbekannte Hostnamen."
-        },
         "certCheckHours": {
           "type": "number",
           "label": "Prüfintervall (Stunden)",
@@ -84,8 +75,8 @@
           "label": "Ablaufwarnung (Tage)",
           "sm": 12,
           "md": 4,
-          "min": 1,
-          "help": "Warnung im Log wenn ein Zertifikat in weniger als X Tagen abläuft."
+          "min": 0,
+          "help": "Warnung im Log wenn ein Zertifikat in weniger als X Tagen abläuft. 0 = deaktiviert."
         },
         "_loggingHeader": {
           "type": "header",
@@ -164,7 +155,7 @@
         "_help": {
           "type": "staticText",
           "sm": 12,
-          "text": "**Hostname**: Domain die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Zertifikat**: Zertifikat aus `system.certificates`. Mit Zertifikat = HTTPS + HTTP\u2192HTTPS Redirect. Ohne Zertifikat = nur HTTP (kein HTTPS f\u00fcr diesen Host). **Erlaubte Netze**: Kommaseparierte CIDR-Netzwerke/IPs (IPv4 + IPv6). Wenn leer, ist der Zugriff von \u00fcberall erlaubt. **Change Origin**: Host-Header auf Ziel-IP umschreiben (z.B. f\u00fcr FritzBox)."
+          "text": "**Hostname**: Domain die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Zertifikat**: Zertifikat aus `system.certificates`. Mit Zertifikat = HTTPS + HTTP\u2192HTTPS Redirect. Ohne Zertifikat = nur HTTP (kein HTTPS f\u00fcr diesen Host). **Erlaubte Netze**: Kommaseparierte CIDR-Netzwerke/IPs (IPv4 + IPv6). Wenn leer, ist der Zugriff von \u00fcberall erlaubt. **Change Origin**: Host-Header auf Ziel-IP umschreiben."
         }
       }
     }

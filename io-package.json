@@ -46,9 +46,8 @@
     "logRequests": false,
     "enableHSTS": true,
     "hstsMaxAge": 31536000,
-    "defaultCertificate": "",
     "certCheckHours": 1,
-    "certWarnDays": 14,
+    "certWarnDays": 0,
     "backends": []
   },
   "objects": [],
