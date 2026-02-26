@@ -68,8 +68,7 @@
           "label": "Standard-Zertifikat (Collection-Name)",
           "sm": 12,
           "md": 4,
-          "allowNone": true,
-          "noneLabel": "(kein Fallback)",
+
           "help": "Zertifikat aus system.certificates als Fallback f\u00fcr HTTPS-Anfragen an unbekannte Hostnamen. Self-Signed wird automatisch als letzter Fallback verwendet."
         },
         "certCheckHours": {
@@ -144,9 +143,7 @@
               "command": "getCertificateCollections",
               "attr": "certificate",
               "width": "13%",
-              "title": "Zertifikat",
-              "allowNone": true,
-              "noneLabel": "(kein Zertifikat)"
+              "title": "Zertifikat"
             },
             {
               "type": "text",
