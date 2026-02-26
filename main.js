@@ -677,13 +677,13 @@ class SimpleProxyManager extends utils.Adapter {
             }
           }
           for (const base of [...certBases].sort()) {
-            result.push({ value: base });
+            result.push({ value: base, label: base });
           }
 
           // Collections (ACME, manuelle, etc.)
           const collections = Object.keys(certsObj.native.collections || {});
           for (const name of collections) {
-            result.push({ value: name });
+            result.push({ value: name, label: name });
           }
         }
 
