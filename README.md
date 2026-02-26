@@ -132,7 +132,7 @@ Alle in `system.certificates → native.certificates` gespeicherten Schlüssel/Z
 | `{name}Public` | Zertifikat (PEM) |
 | `{name}Chained` | Vollständige Zertifikatskette (PEM, bevorzugt gegenüber `Public`) |
 
-Im Dropdown erscheint jeweils der Basisname `{name}`, intern wird `__cert__:{name}` als Wert verwendet.
+Im Dropdown erscheint und wird gespeichert jeweils der Basisname `{name}`.
 
 > **Beispiel:** Hat ioBroker die Schlüssel `myCertPrivate` und `myCertChained` gespeichert,
 > erscheint `myCert` im Dropdown.

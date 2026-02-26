@@ -75,24 +75,22 @@ class SimpleProxyManager extends utils.Adapter {
   /**
    * Löst eine Zertifikat-Quelle aus system.certificates auf.
    * Unterstützt:
+   *  - Eigene Zertifikate nach Namenskonvention: {baseName}Private (Key),
+   *    {baseName}Chained oder {baseName}Public (Cert) – wird zuerst geprüft.
+   *    Gilt auch für das ioBroker-Standard-Zertifikat (Basisname: "default")
    *  - ACME-Style Collections: key (PEM) + chain[] (PEM-Array)
    *  - Referenz-Style Collections: key/cert verweisen auf Namen in native.certificates
-   *  - Eigene Zertifikate nach Namenskonvention: __cert__:{baseName}
-   *    → {baseName}Private (Key), {baseName}Chained oder {baseName}Public (Cert)
-   *    Gilt auch für das ioBroker-Standard-Zertifikat (Basisname: "default")
    */
   resolveCertCollection(collectionName, certsObj) {
     const collections = certsObj.native.collections || {};
     const certificates = certsObj.native.certificates || {};
 
-    // Eigene Zertifikate nach Namenskonvention: __cert__:{baseName}
-    // Gilt auch für das ioBroker-Standard-Zertifikat (baseName = "default")
-    if (collectionName.startsWith('__cert__:')) {
-      const baseName = collectionName.substring('__cert__:'.length);
-      const key = certificates[baseName + 'Private'];
-      const cert = certificates[baseName + 'Chained'] || certificates[baseName + 'Public'];
-      if (!key || !cert) return null;
-      return { key, cert, tsExpires: null, domains: [] };
+    // Eigene Zertifikate nach Namenskonvention: {baseName}Private / {baseName}Chained / {baseName}Public
+    // Gilt auch für das ioBroker-Standard-Zertifikat (Basisname: "default")
+    const namedKey = certificates[collectionName + 'Private'];
+    const namedCert = certificates[collectionName + 'Chained'] || certificates[collectionName + 'Public'];
+    if (namedKey && namedCert) {
+      return { key: namedKey, cert: namedCert, tsExpires: null, domains: [] };
     }
 
     if (!collections[collectionName]) return null;
@@ -679,13 +677,13 @@ class SimpleProxyManager extends utils.Adapter {
             }
           }
           for (const base of [...certBases].sort()) {
-            result.push({ value: '__cert__:' + base, label: base });
+            result.push({ value: base });
           }
 
           // Collections (ACME, manuelle, etc.)
           const collections = Object.keys(certsObj.native.collections || {});
           for (const name of collections) {
-            result.push({ value: name, label: name });
+            result.push({ value: name });
           }
         }
 
