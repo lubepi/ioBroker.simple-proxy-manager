@@ -44,9 +44,26 @@ class SimpleProxyManager extends utils.Adapter {
       if (entry.allowedNetworks) {
         networks = entry.allowedNetworks.split(',').map(s => s.trim()).filter(Boolean);
       }
+      // Ziel-URL validieren
+      try {
+        new URL(entry.target);
+      } catch (_) {
+        this.log.error('Ungültige Ziel-URL für ' + entry.hostname + ': ' + entry.target + ' – Backend wird übersprungen');
+        continue;
+      }
+
+      // CIDR-Netzwerke einmalig parsen (statt bei jedem Request)
+      const parsedNetworks = networks
+        .map(cidr => SimpleProxyManager.parseCIDR(cidr))
+        .filter(n => n !== null);
+      if (parsedNetworks.length < networks.length) {
+        this.log.warn('Einige CIDR-Einträge für ' + entry.hostname + ' sind ungültig und werden ignoriert');
+      }
+
       this.backends[entry.hostname] = {
         target: entry.target,
         allowedNetworks: networks,
+        parsedNetworks: parsedNetworks,
         changeOrigin: !!entry.changeOrigin,
         certificate: entry.certificate || '',
       };
@@ -228,10 +245,13 @@ class SimpleProxyManager extends utils.Adapter {
       const defaultCertName = this.config.defaultCertificate;
       const checkedCollections = new Set();
 
-      for (const [hostname, backend] of Object.entries(this.backends)) {
-        const collName = backend.certificate;
-        if (!collName || checkedCollections.has(collName)) continue;
-        checkedCollections.add(collName);
+      // Default-Zertifikat auch prüfen wenn kein Backend es direkt nutzt
+      if (defaultCertName) checkedCollections.add(defaultCertName);
+      for (const backend of Object.values(this.backends)) {
+        if (backend.certificate) checkedCollections.add(backend.certificate);
+      }
+
+      for (const collName of checkedCollections) {
 
         const resolved = this.resolveCertCollection(collName, obj);
         if (!resolved) continue;
@@ -364,7 +384,7 @@ class SimpleProxyManager extends utils.Adapter {
     const forwarded = req.headers['x-forwarded-for'];
     if (forwarded) return forwarded.split(',')[0].trim();
 
-    const ip = req.socket.remoteAddress || (req.connection && req.connection.remoteAddress);
+    const ip = req.socket.remoteAddress;
 
     // IPv6-mapped IPv4 Adressen konvertieren (::ffff:192.168.0.1 -> 192.168.0.1)
     if (ip && ip.startsWith('::ffff:') && ip.includes('.')) return ip.substring(7);
@@ -375,7 +395,7 @@ class SimpleProxyManager extends utils.Adapter {
   isAllowedIP(clientIP, backend) {
     if (!clientIP) return false;
 
-    const networks = backend.allowedNetworks;
+    const networks = backend.parsedNetworks;
     // Keine Netzwerke konfiguriert = alle IPs erlaubt
     if (!networks || networks.length === 0) return true;
 
@@ -385,9 +405,7 @@ class SimpleProxyManager extends utils.Adapter {
     const ipBytes = SimpleProxyManager.parseIP(clientIP);
     if (!ipBytes) return false;
 
-    for (const cidr of networks) {
-      const network = SimpleProxyManager.parseCIDR(cidr);
-      if (!network) continue;
+    for (const network of networks) {
       if (SimpleProxyManager.ipMatchesCIDR(ipBytes, network)) return true;
     }
     return false;
@@ -549,14 +567,17 @@ class SimpleProxyManager extends utils.Adapter {
       timeout: 30000,      // 30s Socket-Timeout
     });
 
-    // Fehlerbehandlung für Proxy
+    // Fehlerbehandlung für Proxy (res kann bei WebSocket-Upgrades ein Socket sein)
     this.proxy.on('error', (err, req, res) => {
       this.log.error('Proxy-Fehler: ' + err.message);
-      if (res && res.writeHead) {
+      if (res && typeof res.writeHead === 'function' && !res.headersSent) {
         const headers = { 'Content-Type': 'text/html; charset=utf-8' };
         if (this.hstsHeader) headers['Strict-Transport-Security'] = this.hstsHeader;
         res.writeHead(502, headers);
         res.end('<h1>502 Bad Gateway</h1><p>Backend nicht erreichbar.</p>');
+      } else if (res && typeof res.destroy === 'function') {
+        // WebSocket-Upgrade: res ist ein net.Socket
+        res.destroy();
       }
     });
 
@@ -574,36 +595,36 @@ class SimpleProxyManager extends utils.Adapter {
     if (sslOptions.httpOnly) {
       this.log.info('HTTP-only Modus – kein HTTPS-Server gestartet');
     } else {
-    this.httpsServer = https.createServer({
-      ...sslOptions,
-      SNICallback: (servername, cb) => {
-        const ctx = this.certContexts[servername];
-        cb(null, ctx || null); // null = Default-Zertifikat verwenden
-      },
-    }, (req, res) => {
-      this.handleRequest(req, res);
-    });
+      this.httpsServer = https.createServer({
+        ...sslOptions,
+        SNICallback: (servername, cb) => {
+          const ctx = this.certContexts[servername];
+          cb(null, ctx || null); // null = Default-Zertifikat verwenden
+        },
+      }, (req, res) => {
+        this.handleRequest(req, res);
+      });
 
-    this.httpsServer.on('upgrade', (req, socket, head) => {
-      this.handleUpgrade(req, socket, head);
-    });
+      this.httpsServer.on('upgrade', (req, socket, head) => {
+        this.handleUpgrade(req, socket, head);
+      });
 
-    const httpsPort = config.httpsPort || 443;
-    this.httpsServer.listen(httpsPort, '::', () => {
-      this.log.info('HTTPS Reverse Proxy läuft auf Port ' + httpsPort + ' (IPv4 + IPv6)');
-      this.setState('info.connection', true, true);
-    });
+      const httpsPort = config.httpsPort || 443;
+      this.httpsServer.listen(httpsPort, '::', () => {
+        this.log.info('HTTPS Reverse Proxy läuft auf Port ' + httpsPort + ' (IPv4 + IPv6)');
+        this.setState('info.connection', true, true);
+      });
 
-    this.httpsServer.on('error', (err) => {
-      this.log.error('HTTPS-Server Fehler: ' + err.message);
-      if (err.code === 'EADDRINUSE') {
-        this.log.error('Port ' + httpsPort + ' wird bereits verwendet!');
-      } else if (err.code === 'EACCES') {
-        this.log.error('Keine Berechtigung für Port ' + httpsPort + ' – siehe README für setcap');
-      }
-      this.setState('info.connection', false, true);
-    });
-    } // end if (!sslOptions.httpOnly)
+      this.httpsServer.on('error', (err) => {
+        this.log.error('HTTPS-Server Fehler: ' + err.message);
+        if (err.code === 'EADDRINUSE') {
+          this.log.error('Port ' + httpsPort + ' wird bereits verwendet!');
+        } else if (err.code === 'EACCES') {
+          this.log.error('Keine Berechtigung für Port ' + httpsPort + ' – siehe README für setcap');
+        }
+        this.setState('info.connection', false, true);
+      });
+    }
 
     // ---- HTTP-Server (läuft immer) ----
     const httpPort = config.httpPort || 80;
@@ -617,6 +638,10 @@ class SimpleProxyManager extends utils.Adapter {
 
     this.httpServer.listen(httpPort, '::', () => {
       this.log.info('HTTP Server läuft auf Port ' + httpPort + ' (IPv4 + IPv6)');
+      // Im HTTP-only Modus connection-State hier setzen
+      if (sslOptions.httpOnly) {
+        this.setState('info.connection', true, true);
+      }
     });
 
     this.httpServer.on('error', (err) => {

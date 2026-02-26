@@ -18,7 +18,7 @@
           "md": 4,
           "min": 1,
           "max": 65535,
-          "help": "Port f\u00fcr den HTTPS Reverse Proxy (Standard: 443). HTTPS l\u00e4uft immer \u2013 Self-Signed als Fallback. Ports unter 1024 ben\u00f6tigen setcap oder Root-Rechte."
+          "help": "Port für den HTTPS Reverse Proxy (Standard: 443). Ports unter 1024 benötigen setcap oder Root-Rechte."
         },
         "httpPort": {
           "type": "number",
@@ -69,7 +69,7 @@
           "sm": 12,
           "md": 4,
 
-          "help": "Zertifikat aus system.certificates als Fallback f\u00fcr HTTPS-Anfragen an unbekannte Hostnamen. Self-Signed wird automatisch als letzter Fallback verwendet."
+          "help": "Zertifikat aus system.certificates als Fallback für HTTPS-Anfragen an unbekannte Hostnamen."
         },
         "certCheckHours": {
           "type": "number",
