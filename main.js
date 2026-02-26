@@ -60,7 +60,7 @@ class SimpleProxyManager extends utils.Adapter {
         this.log.warn('Einige CIDR-Einträge für ' + entry.hostname + ' sind ungültig und werden ignoriert');
       }
 
-      this.backends[entry.hostname] = {
+      this.backends[entry.hostname.toLowerCase()] = {
         target: entry.target,
         allowedNetworks: networks,
         parsedNetworks: parsedNetworks,
@@ -77,6 +77,20 @@ class SimpleProxyManager extends utils.Adapter {
     // HSTS-Header vorbereiten (nur für HTTPS-Backends relevant)
     if (config.enableHSTS) {
       this.hstsHeader = 'max-age=' + (config.hstsMaxAge || 31536000) + '; includeSubDomains';
+    }
+
+    // ioBroker-Standard-Zertifikat prüfen (Pflicht-Voraussetzung)
+    const certsObj = await this.getForeignObjectAsync('system.certificates');
+    const sysCerts = (certsObj && certsObj.native && certsObj.native.certificates) || {};
+    if (!sysCerts.defaultPrivate || !(sysCerts.defaultPublic || sysCerts.defaultChained)) {
+      this.log.error('=== ioBroker-Standard-Zertifikat fehlt! ===');
+      this.log.error('Der Adapter benötigt das ioBroker-Standard-Zertifikat (defaultPrivate + defaultPublic).');
+      this.log.error('Bitte erstellen mit: iobroker cert create');
+      this.log.error('Adapter wird gestoppt.');
+      if (typeof this.terminate === 'function') {
+        this.terminate('ioBroker-Standard-Zertifikat fehlt');
+      }
+      return;
     }
 
     // SSL-Zertifikate laden (null = Fehler, { httpOnly: true } = kein HTTPS-Backend)
@@ -380,15 +394,15 @@ class SimpleProxyManager extends utils.Adapter {
 
   // ============ IP-PRÜFUNG ============
 
+  /**
+   * Ermittelt die echte Client-IP aus dem Socket.
+   * X-Forwarded-For wird NICHT vertraut (Spoofing-Schutz).
+   * Der Proxy setzt xfwd:true und ergänzt den Header korrekt für die Backends.
+   */
   getClientIP(req) {
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) return forwarded.split(',')[0].trim();
-
     const ip = req.socket.remoteAddress;
-
     // IPv6-mapped IPv4 Adressen konvertieren (::ffff:192.168.0.1 -> 192.168.0.1)
     if (ip && ip.startsWith('::ffff:') && ip.includes('.')) return ip.substring(7);
-
     return ip;
   }
 
@@ -418,7 +432,7 @@ class SimpleProxyManager extends utils.Adapter {
    * Backends ohne Zertifikat bekommen einen Hinweis auf HTTP.
    */
   handleRequest(req, res) {
-    const host = (req.headers.host || '').split(':')[0];
+    const host = (req.headers.host || '').split(':')[0].toLowerCase();
     const clientIP = this.getClientIP(req);
     const backend = this.backends[host];
 
@@ -473,14 +487,13 @@ class SimpleProxyManager extends utils.Adapter {
    * ACME-Challenges werden immer weitergeleitet.
    */
   handleHttpRequest(req, res) {
-    // ACME-Challenge immer weiterleiten
-    if (req.url.startsWith('/.well-known/acme-challenge/')) {
-      const acmePort = this.config.acmePort || 8080;
-      this.proxy.web(req, res, { target: 'http://127.0.0.1:' + acmePort });
+    // ACME-Challenge weiterleiten (nur wenn acmePort konfiguriert)
+    if (this.config.acmePort && req.url.startsWith('/.well-known/acme-challenge/')) {
+      this.proxy.web(req, res, { target: 'http://127.0.0.1:' + this.config.acmePort });
       return;
     }
 
-    const host = (req.headers.host || '').split(':')[0];
+    const host = (req.headers.host || '').split(':')[0].toLowerCase();
     const clientIP = this.getClientIP(req);
     const backend = this.backends[host];
 
@@ -521,7 +534,7 @@ class SimpleProxyManager extends utils.Adapter {
   }
 
   handleUpgrade(req, socket, head) {
-    const host = (req.headers.host || '').split(':')[0];
+    const host = (req.headers.host || '').split(':')[0].toLowerCase();
     const clientIP = this.getClientIP(req);
     const backend = this.backends[host];
     const isHttps = req.socket.encrypted;
@@ -598,8 +611,19 @@ class SimpleProxyManager extends utils.Adapter {
       this.httpsServer = https.createServer({
         ...sslOptions,
         SNICallback: (servername, cb) => {
-          const ctx = this.certContexts[servername];
-          cb(null, ctx || null); // null = Default-Zertifikat verwenden
+          const name = (servername || '').toLowerCase();
+          const ctx = this.certContexts[name];
+          if (ctx) {
+            // Bekannter Host mit eigenem Zertifikat
+            cb(null, ctx);
+          } else if (this.backends[name]) {
+            // Backend ohne eigenes Zertifikat → Default-Kontext für HTTP-Redirect
+            cb(null, null);
+          } else {
+            // Unbekannter Hostname → TLS-Handshake ablehnen
+            this.log.debug('TLS-Handshake abgelehnt für unbekannten Host: ' + servername);
+            cb(new Error('Unknown hostname'));
+          }
         },
       }, (req, res) => {
         this.handleRequest(req, res);
