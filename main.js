@@ -675,7 +675,7 @@ class SimpleProxyManager extends utils.Adapter {
 
           // Self-Signed Zertifikate (defaultPrivate/defaultPublic)
           if (certs.defaultPrivate && certs.defaultPublic) {
-            result.push({ value: '__selfSigned__', label: 'default' });
+            result.push({ value: '__selfSigned__', label: 'ioBroker (Self-Signed)' });
           }
 
           // Eigene Zertifikate nach Namenskonvention {name}Private / {name}Public / {name}Chained
