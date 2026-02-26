@@ -671,14 +671,14 @@ class SimpleProxyManager extends utils.Adapter {
         ];
 
         if (certsObj && certsObj.native) {
-          // Self-Signed Zertifikate (defaultPrivate/defaultPublic)
           const certs = certsObj.native.certificates || {};
+
+          // Self-Signed Zertifikate (defaultPrivate/defaultPublic)
           if (certs.defaultPrivate && certs.defaultPublic) {
             result.push({ value: '__selfSigned__', label: 'default' });
           }
 
           // Eigene Zertifikate nach Namenskonvention {name}Private / {name}Public / {name}Chained
-          const certs = certsObj.native.certificates || {};
           const certBases = new Set();
           for (const key of Object.keys(certs)) {
             if (key === 'defaultPrivate' || key === 'defaultPublic') continue;
