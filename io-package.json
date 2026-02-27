@@ -42,7 +42,7 @@
   "native": {
     "httpsPort": 443,
     "httpPort": 80,
-    "acmePort": 8080,
+    "acmePort": 0,
     "logRequests": false,
     "enableHSTS": true,
     "hstsMaxAge": 31536000,

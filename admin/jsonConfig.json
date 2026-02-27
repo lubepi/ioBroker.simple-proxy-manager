@@ -34,7 +34,8 @@
           "label": "ACME Adapter Port",
           "sm": 12,
           "md": 4,
-          "help": "Interner Port des ACME-Adapters für HTTP-01-Challenge-Weiterleitung."
+          "min": 0,
+          "help": "Interner Port des ACME-Adapters für HTTP-01-Challenge-Weiterleitung. 0 = Weiterleitung deaktiviert."
         },
         "_securityHeader": {
           "type": "header",
@@ -46,13 +47,13 @@
           "type": "checkbox",
           "label": "HSTS aktivieren (Strict-Transport-Security)",
           "sm": 12,
-          "md": 6
+          "md": 4
         },
         "hstsMaxAge": {
           "type": "number",
           "label": "HSTS max-age (Sekunden)",
           "sm": 12,
-          "md": 6,
+          "md": 4,
           "min": 0,
           "help": "Standard: 31536000 (1 Jahr)"
         },
