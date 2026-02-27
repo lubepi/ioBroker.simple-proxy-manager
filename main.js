@@ -447,17 +447,8 @@ class SimpleProxyManager extends utils.Adapter {
       this.log.info(clientIP + ' -> HTTPS ' + host + req.url);
     }
 
-    // Unbekannter Host
-    if (!backend) {
-      this.log.debug('Unbekannter Host: ' + host);
-      const headers = { 'Content-Type': 'text/html; charset=utf-8' };
-      if (this.hstsHeader) headers['Strict-Transport-Security'] = this.hstsHeader;
-      res.writeHead(404, headers);
-      res.end('<h1>404 Not Found</h1><p>Unbekannte Domain.</p>');
-      return;
-    }
-
     // Backend ohne Zertifikat → nur über HTTP erreichbar
+    // (unbekannte Hosts werden bereits im SNICallback auf TLS-Ebene abgelehnt)
     if (!backend.certificate) {
       const httpPort = this.config.httpPort || 80;
       const portSuffix = httpPort === 80 ? '' : ':' + httpPort;
@@ -472,7 +463,7 @@ class SimpleProxyManager extends utils.Adapter {
       const headers = { 'Content-Type': 'text/html; charset=utf-8' };
       if (this.hstsHeader) headers['Strict-Transport-Security'] = this.hstsHeader;
       res.writeHead(403, headers);
-      res.end('<h1>403 Forbidden</h1><p>Zugriff nur aus dem lokalen Netzwerk erlaubt.</p>');
+      res.end('<h1>403 Forbidden</h1>');
       return;
     }
 
