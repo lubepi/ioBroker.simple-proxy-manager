@@ -191,8 +191,8 @@ class SimpleProxyManager extends utils.Adapter {
       }
 
       // Log available collections
-      const availableCollections = Object.keys(obj.native.collections || {});
-      this.log.info('Available certificate collections: ' + availableCollections.join(', '));
+      const allCertNames = SimpleProxyManager.discoverAllCertNames(obj);
+      this.log.info('Available certificates: ' + [...allCertNames].join(', '));
 
       // Collect all collection names used by backends
       const usedCollections = new Set();
@@ -206,7 +206,7 @@ class SimpleProxyManager extends utils.Adapter {
 
       let defaultSslOptions = null;
 
-      // Resolve each collection and create SecureContexts
+      // Resolve each backend-used collection and create SecureContexts
       for (const collName of usedCollections) {
         const resolved = this.resolveCertCollection(collName, obj);
         if (!resolved) {
@@ -231,20 +231,27 @@ class SimpleProxyManager extends utils.Adapter {
         }
 
         // Track expiry and create per-certificate states
-        await this.ensureCertStates(collName);
-        const expiryDate = SimpleProxyManager.getExpiryFromPem(resolved.cert);
-        if (expiryDate && !isNaN(expiryDate.getTime())) {
-          const daysLeft = Math.floor((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-          await this.setStateAsync('certificates.' + collName + '.expires', expiryDate.toLocaleDateString('en-GB'), true);
-          await this.setStateAsync('certificates.' + collName + '.daysLeft', daysLeft, true);
-          this.log.info('Certificate "' + collName + '": valid until ' + expiryDate.toLocaleDateString('en-GB') + ' (' + daysLeft + ' days)');
-          if (this.config.certWarnDays > 0 && daysLeft < this.config.certWarnDays) {
-            this.log.warn('Certificate "' + collName + '" expires in ' + daysLeft + ' days!');
-          }
+        const expiry = await this.updateCertStates(collName, resolved.cert);
+        if (expiry) {
+          const daysLeft = Math.floor((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          this.log.info('Certificate "' + collName + '": valid until ' + expiry.toLocaleDateString('en-GB') + ' (' + daysLeft + ' days)');
         } else {
-          await this.setStateAsync('certificates.' + collName + '.expires', '', true);
-          await this.setStateAsync('certificates.' + collName + '.daysLeft', 0, true);
           this.log.info('Certificate "' + collName + '" loaded (expiry date unknown)');
+        }
+      }
+
+      // Monitor ALL other certificates not used by backends
+      for (const certName of allCertNames) {
+        if (usedCollections.has(certName)) continue;
+        const resolved = this.resolveCertCollection(certName, obj);
+        if (!resolved) continue;
+        this.certHashes[certName] = resolved.cert;
+        const expiry = await this.updateCertStates(certName, resolved.cert);
+        if (expiry) {
+          const daysLeft = Math.floor((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          this.log.info('Certificate "' + certName + '": valid until ' + expiry.toLocaleDateString('en-GB') + ' (' + daysLeft + ' days)');
+        } else {
+          this.log.info('Certificate "' + certName + '" loaded (expiry date unknown)');
         }
       }
 
@@ -261,8 +268,8 @@ class SimpleProxyManager extends utils.Adapter {
   }
 
   /**
-   * Checks all used certificate collections for changes
-   * and updates the SNI contexts if needed.
+   * Checks all certificate collections for changes, updates SNI contexts
+   * for backend-used certs, and refreshes expiry states for all certs.
    */
   async checkCertificateRenewal() {
     try {
@@ -273,23 +280,22 @@ class SimpleProxyManager extends utils.Adapter {
       let newDefault = null;
 
       const defaultCertName = 'default';
-      const checkedCollections = new Set();
+      const usedCollections = new Set();
 
       // Always check default certificate
-      checkedCollections.add(defaultCertName);
+      usedCollections.add(defaultCertName);
       for (const backend of Object.values(this.backends)) {
-        if (backend.certificate) checkedCollections.add(backend.certificate);
+        if (backend.certificate) usedCollections.add(backend.certificate);
       }
 
-      for (const collName of checkedCollections) {
-
+      // Update SNI contexts for backend-used certs
+      for (const collName of usedCollections) {
         const resolved = this.resolveCertCollection(collName, obj);
         if (!resolved) continue;
 
         // Check whether cert content has changed
         if (resolved.cert !== this.certHashes[collName]) {
           const ctx = tls.createSecureContext({ key: resolved.key, cert: resolved.cert });
-          // Update all hostnames that use this collection
           for (const [h, b] of Object.entries(this.backends)) {
             if (b.certificate === collName) {
               this.certContexts[h] = ctx;
@@ -300,21 +306,21 @@ class SimpleProxyManager extends utils.Adapter {
           this.log.info('Certificate "' + collName + '" automatically reloaded');
         }
 
-        // Update per-certificate states
-        const expiryDate = SimpleProxyManager.getExpiryFromPem(resolved.cert);
-        if (expiryDate && !isNaN(expiryDate.getTime())) {
-          const daysLeft = Math.floor((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-          await this.setStateAsync('certificates.' + collName + '.expires', expiryDate.toLocaleDateString('en-GB'), true);
-          await this.setStateAsync('certificates.' + collName + '.daysLeft', daysLeft, true);
-          if (this.config.certWarnDays > 0 && daysLeft < this.config.certWarnDays) {
-            this.log.warn('Certificate "' + collName + '" expires in ' + daysLeft + ' days!');
-          }
-        }
+        await this.updateCertStates(collName, resolved.cert);
 
-        // Remember default cert for server context
         if (collName === defaultCertName || !newDefault) {
           newDefault = resolved;
         }
+      }
+
+      // Update states for all other certificates
+      const allCertNames = SimpleProxyManager.discoverAllCertNames(obj);
+      for (const certName of allCertNames) {
+        if (usedCollections.has(certName)) continue;
+        const resolved = this.resolveCertCollection(certName, obj);
+        if (!resolved) continue;
+        this.certHashes[certName] = resolved.cert;
+        await this.updateCertStates(certName, resolved.cert);
       }
 
       // Update default server context if anything changed
@@ -361,6 +367,53 @@ class SimpleProxyManager extends utils.Adapter {
     } catch (_) {
       return null;
     }
+  }
+
+  /**
+   * Discovers all resolvable certificate names from system.certificates.
+   * Includes named certificates ({name}Private + {name}Public/Chained)
+   * and all collection names from native.collections.
+   */
+  static discoverAllCertNames(certsObj) {
+    const names = new Set();
+    const certificates = (certsObj.native && certsObj.native.certificates) || {};
+    const collections = (certsObj.native && certsObj.native.collections) || {};
+    // Named certificates by convention
+    for (const key of Object.keys(certificates)) {
+      if (key.endsWith('Private')) {
+        const base = key.slice(0, -7); // 'Private'.length === 7
+        if (certificates[base + 'Public'] || certificates[base + 'Chained']) {
+          names.add(base);
+        }
+      }
+    }
+    // All collections
+    for (const name of Object.keys(collections)) {
+      names.add(name);
+    }
+    return names;
+  }
+
+  /**
+   * Updates the per-certificate states (expires + daysLeft) for a given
+   * certificate name. Creates the state objects if they don't exist.
+   * Returns the parsed expiry Date or null.
+   */
+  async updateCertStates(certName, certPem) {
+    await this.ensureCertStates(certName);
+    const expiryDate = SimpleProxyManager.getExpiryFromPem(certPem);
+    if (expiryDate && !isNaN(expiryDate.getTime())) {
+      const daysLeft = Math.floor((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      await this.setStateAsync('certificates.' + certName + '.expires', expiryDate.toLocaleDateString('en-GB'), true);
+      await this.setStateAsync('certificates.' + certName + '.daysLeft', daysLeft, true);
+      if (this.config.certWarnDays > 0 && daysLeft < this.config.certWarnDays) {
+        this.log.warn('Certificate "' + certName + '" expires in ' + daysLeft + ' days!');
+      }
+      return expiryDate;
+    }
+    await this.setStateAsync('certificates.' + certName + '.expires', '', true);
+    await this.setStateAsync('certificates.' + certName + '.daysLeft', 0, true);
+    return null;
   }
 
   /**
