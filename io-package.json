@@ -48,6 +48,7 @@
     "hstsMaxAge": 31536000,
     "certCheckHours": 1,
     "certWarnDays": 0,
+    "logSecurity": false,
     "backends": []
   },
   "objects": [],

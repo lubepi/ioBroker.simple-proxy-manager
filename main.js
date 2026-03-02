@@ -508,7 +508,7 @@ class SimpleProxyManager extends utils.Adapter {
 
     // IP-Filterung
     if (!this.isAllowedIP(clientIP, backend)) {
-      this.log.warn('Zugriff verweigert für ' + clientIP + ' auf ' + host);
+      if (this.config.logSecurity) this.log.warn('Zugriff verweigert für ' + clientIP + ' auf ' + host);
       const headers = { 'Content-Type': 'text/html; charset=utf-8' };
       if (this.hstsHeader) headers['Strict-Transport-Security'] = this.hstsHeader;
       res.writeHead(403, headers);
@@ -568,7 +568,7 @@ class SimpleProxyManager extends utils.Adapter {
 
     // IP-Filterung
     if (!this.isAllowedIP(clientIP, backend)) {
-      this.log.warn('Zugriff verweigert für ' + clientIP + ' auf ' + host + ' (HTTP)');
+      if (this.config.logSecurity) this.log.warn('Zugriff verweigert für ' + clientIP + ' auf ' + host + ' (HTTP)');
       res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end('<h1>403 Forbidden</h1>');
       return;
@@ -605,7 +605,7 @@ class SimpleProxyManager extends utils.Adapter {
 
     // IP-Filterung auch für WebSockets
     if (!this.isAllowedIP(clientIP, backend)) {
-      this.log.warn('WebSocket-Zugriff verweigert für ' + clientIP);
+      if (this.config.logSecurity) this.log.warn('WebSocket-Zugriff verweigert für ' + clientIP);
       socket.destroy();
       return;
     }

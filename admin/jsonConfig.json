@@ -85,12 +85,19 @@
           "size": 4,
           "sm": 12
         },
+        "logSecurity": {
+          "type": "checkbox",
+          "label": "Sicherheitsmeldungen protokollieren",
+          "sm": 12,
+          "md": 6,
+          "help": "Loggt verweigerte Zugriffe (IP-Filterung, WebSocket). Start/Stop-Meldungen werden immer geloggt."
+        },
         "logRequests": {
           "type": "checkbox",
           "label": "Alle Anfragen protokollieren",
           "sm": 12,
           "md": 6,
-          "help": "Loggt jede eingehende Anfrage (IP, Host, URL). Start/Stop- und Sicherheits-Meldungen werden immer geloggt."
+          "help": "Loggt jede eingehende Anfrage (IP, Host, URL)."
         }
       }
     },
