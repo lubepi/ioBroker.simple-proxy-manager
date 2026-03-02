@@ -182,6 +182,13 @@ class SimpleProxyManager extends utils.Adapter {
    * Loads all certificates required by backends and creates a
    * tls.SecureContext per hostname for SNI.
    */
+  /**
+   * Loads all certificates required by the configured backends plus the
+   * ioBroker default certificate. Creates TLS SecureContexts for SNI,
+   * removes stale per-certificate states from previous configurations,
+   * and writes fresh expiry states for each loaded certificate.
+   * Returns the SSL options for the default HTTPS server, or null on failure.
+   */
   async loadAllCertificates() {
     try {
       const obj = await this.getForeignObjectAsync('system.certificates');
@@ -190,7 +197,7 @@ class SimpleProxyManager extends utils.Adapter {
         return null;
       }
 
-      // Log available collections
+      // Log available ACME/named collections from system.certificates
       const availableCollections = Object.keys(obj.native.collections || {});
       this.log.info('Available certificate collections: ' + availableCollections.join(', '));
 
@@ -273,8 +280,9 @@ class SimpleProxyManager extends utils.Adapter {
   }
 
   /**
-   * Checks all used certificate collections for changes
-   * and updates the SNI contexts if needed.
+   * Periodically checks all active certificates for content changes and
+   * refreshes SNI contexts + expiry states. Called on the certCheckHours
+   * interval. Covers the default certificate and all backend-assigned certs.
    */
   async checkCertificateRenewal() {
     try {
@@ -285,15 +293,15 @@ class SimpleProxyManager extends utils.Adapter {
       let newDefault = null;
 
       const defaultCertName = 'default';
-      const checkedCollections = new Set();
+      const usedCertNames = new Set();
 
       // Always check default certificate
-      checkedCollections.add(defaultCertName);
+      usedCertNames.add(defaultCertName);
       for (const backend of Object.values(this.backends)) {
-        if (backend.certificate) checkedCollections.add(backend.certificate);
+        if (backend.certificate) usedCertNames.add(backend.certificate);
       }
 
-      for (const collName of checkedCollections) {
+      for (const collName of usedCertNames) {
 
         const resolved = this.resolveCertCollection(collName, obj);
         if (!resolved) continue;
@@ -323,7 +331,7 @@ class SimpleProxyManager extends utils.Adapter {
           }
         }
 
-        // Remember default cert for server context
+        // Track default cert – needed to update the server's base SecureContext
         if (collName === defaultCertName || !newDefault) {
           newDefault = resolved;
         }
