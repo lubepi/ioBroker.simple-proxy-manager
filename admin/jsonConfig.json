@@ -97,7 +97,7 @@
           "label": "Alle Anfragen protokollieren",
           "sm": 12,
           "md": 6,
-          "help": "Loggt jede eingehende Anfrage (IP, Host, URL)."
+          "help": "Loggt jede eingehende Anfrage (HTTP, HTTPS, WebSocket) mit IP, Host und URL."
         }
       }
     },

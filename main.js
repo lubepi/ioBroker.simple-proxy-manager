@@ -588,6 +588,10 @@ class SimpleProxyManager extends utils.Adapter {
     const backend = this.backends[host];
     const isHttps = req.socket.encrypted;
 
+    if (this.config.logRequests) {
+      this.log.info(clientIP + ' -> WS' + (isHttps ? 'S' : '') + ' ' + host + req.url);
+    }
+
     if (!backend) {
       socket.destroy();
       return;
