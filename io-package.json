@@ -73,33 +73,6 @@
         "def": false
       },
       "native": {}
-    },
-    {
-      "_id": "info.certificateExpires",
-      "type": "state",
-      "common": {
-        "role": "text",
-        "name": "Certificate expiration date",
-        "type": "string",
-        "read": true,
-        "write": false,
-        "def": ""
-      },
-      "native": {}
-    },
-    {
-      "_id": "info.certificateDaysLeft",
-      "type": "state",
-      "common": {
-        "role": "value",
-        "name": "Days until certificate expiry",
-        "type": "number",
-        "read": true,
-        "write": false,
-        "unit": "days",
-        "def": 0
-      },
-      "native": {}
     }
   ]
 }

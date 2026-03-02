@@ -204,8 +204,6 @@ class SimpleProxyManager extends utils.Adapter {
       usedCollections.add(defaultCertName);
 
       let defaultSslOptions = null;
-      let minDaysLeft = Infinity;
-      let earliestExpiry = null;
 
       // Resolve each collection and create SecureContexts
       for (const collName of usedCollections) {
@@ -231,26 +229,21 @@ class SimpleProxyManager extends utils.Adapter {
           defaultSslOptions = { key: resolved.key, cert: resolved.cert };
         }
 
-        // Track expiry (only for collections with tsExpires, e.g. ACME)
+        // Track expiry and create per-certificate states
+        await this.ensureCertStates(collName);
         if (resolved.tsExpires) {
           const daysLeft = Math.floor((resolved.tsExpires - Date.now()) / (1000 * 60 * 60 * 24));
-          if (daysLeft < minDaysLeft) {
-            minDaysLeft = daysLeft;
-            earliestExpiry = new Date(resolved.tsExpires);
-          }
+          await this.setStateAsync('certificates.' + collName + '.expires', new Date(resolved.tsExpires).toLocaleDateString('en-GB'), true);
+          await this.setStateAsync('certificates.' + collName + '.daysLeft', daysLeft, true);
           this.log.info('Certificate "' + collName + '": domains=' + resolved.domains.join(', ') + ', valid until ' + new Date(resolved.tsExpires).toLocaleDateString('en-GB'));
           if (this.config.certWarnDays > 0 && daysLeft < this.config.certWarnDays) {
             this.log.warn('Certificate "' + collName + '" expires in ' + daysLeft + ' days!');
           }
         } else {
+          await this.setStateAsync('certificates.' + collName + '.expires', '', true);
+          await this.setStateAsync('certificates.' + collName + '.daysLeft', 0, true);
           this.log.info('Certificate "' + collName + '" loaded (self-signed / no expiry date)');
         }
-      }
-
-      // Update states (earliest expiry across all certificates)
-      if (earliestExpiry) {
-        await this.setStateAsync('info.certificateExpires', earliestExpiry.toLocaleDateString('en-GB'), true);
-        await this.setStateAsync('info.certificateDaysLeft', minDaysLeft, true);
       }
 
       if (!defaultSslOptions) {
@@ -275,8 +268,6 @@ class SimpleProxyManager extends utils.Adapter {
       if (!obj || !obj.native) return;
 
       let changed = false;
-      let minDaysLeft = Infinity;
-      let earliestExpiry = null;
       let newDefault = null;
 
       const defaultCertName = 'default';
@@ -307,13 +298,11 @@ class SimpleProxyManager extends utils.Adapter {
           this.log.info('Certificate "' + collName + '" automatically reloaded');
         }
 
-        // Track expiry
+        // Update per-certificate states
         if (resolved.tsExpires) {
           const daysLeft = Math.floor((resolved.tsExpires - Date.now()) / (1000 * 60 * 60 * 24));
-          if (daysLeft < minDaysLeft) {
-            minDaysLeft = daysLeft;
-            earliestExpiry = new Date(resolved.tsExpires);
-          }
+          await this.setStateAsync('certificates.' + collName + '.expires', new Date(resolved.tsExpires).toLocaleDateString('en-GB'), true);
+          await this.setStateAsync('certificates.' + collName + '.daysLeft', daysLeft, true);
           if (this.config.certWarnDays > 0 && daysLeft < this.config.certWarnDays) {
             this.log.warn('Certificate "' + collName + '" expires in ' + daysLeft + ' days!');
           }
@@ -328,12 +317,6 @@ class SimpleProxyManager extends utils.Adapter {
       // Update default server context if anything changed
       if (changed && newDefault && this.httpsServer) {
         this.httpsServer.setSecureContext({ key: newDefault.key, cert: newDefault.cert });
-      }
-
-      // Update states
-      if (earliestExpiry) {
-        await this.setStateAsync('info.certificateExpires', earliestExpiry.toLocaleDateString('en-GB'), true);
-        await this.setStateAsync('info.certificateDaysLeft', minDaysLeft, true);
       }
     } catch (e) {
       this.log.error('Error checking certificates: ' + e.message);
@@ -359,6 +342,46 @@ class SimpleProxyManager extends utils.Adapter {
       label.length <= 63 &&
       /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/.test(label)
     );
+  }
+
+  // ============ PER-CERTIFICATE STATE OBJECTS ============
+
+  /**
+   * Creates the dynamic state objects for a certificate collection
+   * under certificates.<name>.expires and certificates.<name>.daysLeft.
+   * Uses setObjectNotExistsAsync so existing objects are not overwritten.
+   */
+  async ensureCertStates(collName) {
+    await this.setObjectNotExistsAsync('certificates.' + collName, {
+      type: 'channel',
+      common: { name: 'Certificate: ' + collName },
+      native: {},
+    });
+    await this.setObjectNotExistsAsync('certificates.' + collName + '.expires', {
+      type: 'state',
+      common: {
+        role: 'text',
+        name: 'Expiry date',
+        type: 'string',
+        read: true,
+        write: false,
+        def: '',
+      },
+      native: {},
+    });
+    await this.setObjectNotExistsAsync('certificates.' + collName + '.daysLeft', {
+      type: 'state',
+      common: {
+        role: 'value',
+        name: 'Days until expiry',
+        type: 'number',
+        read: true,
+        write: false,
+        unit: 'days',
+        def: 0,
+      },
+      native: {},
+    });
   }
 
   // ============ IP PARSING (CIDR) ============

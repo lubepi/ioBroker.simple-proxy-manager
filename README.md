@@ -88,8 +88,10 @@ In this example:
 | State | Type | Description |
 |---|---|---|
 | `info.connection` | boolean | Proxy is running |
-| `info.certificateExpires` | string | Certificate expiry date |
-| `info.certificateDaysLeft` | number | Days until expiry |
+| `certificates.<name>.expires` | string | Expiry date of the certificate (per collection) |
+| `certificates.<name>.daysLeft` | number | Days until expiry (per collection) |
+
+Certificate states are created dynamically for each used certificate collection (e.g. `certificates.acme.daysLeft`, `certificates.default.expires`).
 
 ## ACME Adapter Configuration
 
