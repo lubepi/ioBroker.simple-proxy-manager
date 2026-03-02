@@ -49,7 +49,7 @@ iobroker url https://github.com/lubepi/ioBroker.simple-proxy-manager
 |---|---|---|
 | HTTPS Port | 443 | Port for HTTPS |
 | HTTP Port | 80 | Port for HTTP – backends without a certificate are served here; with certificate → redirect to HTTPS |
-| ACME Adapter Port | 8080 | Internal port of the ACME adapter (0 = disabled) |
+| ACME Adapter Port | 0 | Internal port of the ACME adapter (0 = disabled) |
 | Enable HSTS | ✓ | Strict-Transport-Security header (HTTPS only) |
 | HSTS max-age | 31536000 | HSTS validity duration in seconds (1 year) |
 | Check interval | 1 | How often certificates are checked (hours) |

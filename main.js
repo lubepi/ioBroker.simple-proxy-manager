@@ -710,7 +710,7 @@ class SimpleProxyManager extends utils.Adapter {
       if (err.code === 'EADDRINUSE') {
         this.log.error('Port ' + httpsPort + ' is already in use!');
       } else if (err.code === 'EACCES') {
-        this.log.error('No permission for port ' + httpsPort + ' – see README for setcap');
+        this.log.error('No permission for port ' + httpsPort + ' – elevated privileges required for ports < 1024');
       }
       this.setState('info.connection', false, true);
     });
@@ -734,7 +734,7 @@ class SimpleProxyManager extends utils.Adapter {
       if (err.code === 'EADDRINUSE') {
         this.log.error('Port ' + httpPort + ' is already in use!');
       } else if (err.code === 'EACCES') {
-        this.log.error('No permission for port ' + httpPort + ' – see README for setcap');
+        this.log.error('No permission for port ' + httpPort + ' – elevated privileges required for ports < 1024');
       }
     });
 
