@@ -5,6 +5,7 @@ const https = require('https');
 const http = require('http');
 const httpProxy = require('http-proxy');
 const tls = require('tls');
+const crypto = require('crypto');
 
 class SimpleProxyManager extends utils.Adapter {
   constructor(options) {
@@ -231,18 +232,19 @@ class SimpleProxyManager extends utils.Adapter {
 
         // Track expiry and create per-certificate states
         await this.ensureCertStates(collName);
-        if (resolved.tsExpires) {
-          const daysLeft = Math.floor((resolved.tsExpires - Date.now()) / (1000 * 60 * 60 * 24));
-          await this.setStateAsync('certificates.' + collName + '.expires', new Date(resolved.tsExpires).toLocaleDateString('en-GB'), true);
+        const expiryDate = SimpleProxyManager.getExpiryFromPem(resolved.cert);
+        if (expiryDate && !isNaN(expiryDate.getTime())) {
+          const daysLeft = Math.floor((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          await this.setStateAsync('certificates.' + collName + '.expires', expiryDate.toLocaleDateString('en-GB'), true);
           await this.setStateAsync('certificates.' + collName + '.daysLeft', daysLeft, true);
-          this.log.info('Certificate "' + collName + '": domains=' + resolved.domains.join(', ') + ', valid until ' + new Date(resolved.tsExpires).toLocaleDateString('en-GB'));
+          this.log.info('Certificate "' + collName + '": valid until ' + expiryDate.toLocaleDateString('en-GB') + ' (' + daysLeft + ' days)');
           if (this.config.certWarnDays > 0 && daysLeft < this.config.certWarnDays) {
             this.log.warn('Certificate "' + collName + '" expires in ' + daysLeft + ' days!');
           }
         } else {
           await this.setStateAsync('certificates.' + collName + '.expires', '', true);
           await this.setStateAsync('certificates.' + collName + '.daysLeft', 0, true);
-          this.log.info('Certificate "' + collName + '" loaded (self-signed / no expiry date)');
+          this.log.info('Certificate "' + collName + '" loaded (expiry date unknown)');
         }
       }
 
@@ -299,9 +301,10 @@ class SimpleProxyManager extends utils.Adapter {
         }
 
         // Update per-certificate states
-        if (resolved.tsExpires) {
-          const daysLeft = Math.floor((resolved.tsExpires - Date.now()) / (1000 * 60 * 60 * 24));
-          await this.setStateAsync('certificates.' + collName + '.expires', new Date(resolved.tsExpires).toLocaleDateString('en-GB'), true);
+        const expiryDate = SimpleProxyManager.getExpiryFromPem(resolved.cert);
+        if (expiryDate && !isNaN(expiryDate.getTime())) {
+          const daysLeft = Math.floor((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          await this.setStateAsync('certificates.' + collName + '.expires', expiryDate.toLocaleDateString('en-GB'), true);
           await this.setStateAsync('certificates.' + collName + '.daysLeft', daysLeft, true);
           if (this.config.certWarnDays > 0 && daysLeft < this.config.certWarnDays) {
             this.log.warn('Certificate "' + collName + '" expires in ' + daysLeft + ' days!');
@@ -345,6 +348,20 @@ class SimpleProxyManager extends utils.Adapter {
   }
 
   // ============ PER-CERTIFICATE STATE OBJECTS ============
+
+  /**
+   * Extracts the expiry date from a PEM certificate string.
+   * Returns a Date object, or null if parsing fails.
+   * Uses Node.js crypto.X509Certificate (available since Node 15).
+   */
+  static getExpiryFromPem(certPem) {
+    try {
+      const x509 = new crypto.X509Certificate(certPem);
+      return new Date(x509.validTo);
+    } catch (_) {
+      return null;
+    }
+  }
 
   /**
    * Creates the dynamic state objects for a certificate collection
