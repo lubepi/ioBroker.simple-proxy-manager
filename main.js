@@ -38,26 +38,46 @@ class SimpleProxyManager extends utils.Adapter {
     }
 
     for (const entry of config.backends) {
-      if (!entry.enabled || !entry.hostname || !entry.target) continue;
+      if (!entry.enabled) continue;
+
+      // Hostname und Ziel-URL sind Pflichtfelder
+      if (!entry.hostname) {
+        this.log.error('Konfigurationsfehler: Ein Backend hat keinen Hostnamen – bitte Konfiguration prüfen.');
+        this.terminate('Ungültige Konfiguration: Hostname fehlt');
+        return;
+      }
+      if (!entry.target) {
+        this.log.error('Konfigurationsfehler: Backend "' + entry.hostname + '" hat kein Ziel (Ziel-URL fehlt).');
+        this.terminate('Ungültige Konfiguration: Ziel-URL fehlt für ' + entry.hostname);
+        return;
+      }
+
+      // Ziel-URL validieren
+      try {
+        new URL(entry.target);
+      } catch (_) {
+        this.log.error('Konfigurationsfehler: Ungültige Ziel-URL für "' + entry.hostname + '": ' + entry.target);
+        this.terminate('Ungültige Konfiguration: Ziel-URL für ' + entry.hostname);
+        return;
+      }
+
       // allowedNetworks: kommaseparierter String → Array
       let networks = [];
       if (entry.allowedNetworks) {
         networks = entry.allowedNetworks.split(',').map(s => s.trim()).filter(Boolean);
       }
-      // Ziel-URL validieren
-      try {
-        new URL(entry.target);
-      } catch (_) {
-        this.log.error('Ungültige Ziel-URL für ' + entry.hostname + ': ' + entry.target + ' – Backend wird übersprungen');
-        continue;
-      }
 
-      // CIDR-Netzwerke einmalig parsen (statt bei jedem Request)
-      const parsedNetworks = networks
-        .map(cidr => SimpleProxyManager.parseCIDR(cidr))
-        .filter(n => n !== null);
-      if (parsedNetworks.length < networks.length) {
-        this.log.warn('Einige CIDR-Einträge für ' + entry.hostname + ' sind ungültig und werden ignoriert');
+      // CIDR-Netzwerke parsen – ungültige Einträge beenden den Adapter
+      const parsedNetworks = [];
+      for (const cidr of networks) {
+        const parsed = SimpleProxyManager.parseCIDR(cidr);
+        if (parsed === null) {
+          this.log.error('Konfigurationsfehler: Ungültiger CIDR-Eintrag "' + cidr + '" für Backend "' + entry.hostname + '".');
+          this.log.error('Ohne gültige IP-Filterung würde der Zugriff für alle IPs erlaubt sein – Adapter wird gestoppt.');
+          this.terminate('Ungültige Konfiguration: CIDR "' + cidr + '" für ' + entry.hostname);
+          return;
+        }
+        parsedNetworks.push(parsed);
       }
 
       this.backends[entry.hostname.toLowerCase()] = {
@@ -504,7 +524,7 @@ class SimpleProxyManager extends utils.Adapter {
     if (!backend) {
       this.log.debug('Unbekannter Host (HTTP): ' + host);
       res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end('<h1>404 Not Found</h1><p>Unbekannte Domain.</p>');
+      res.end('<h1>404 Not Found</h1>');
       return;
     }
 
@@ -521,7 +541,7 @@ class SimpleProxyManager extends utils.Adapter {
     if (!this.isAllowedIP(clientIP, backend)) {
       this.log.warn('Zugriff verweigert für ' + clientIP + ' auf ' + host + ' (HTTP)');
       res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end('<h1>403 Forbidden</h1><p>Zugriff nur aus dem lokalen Netzwerk erlaubt.</p>');
+      res.end('<h1>403 Forbidden</h1>');
       return;
     }
 
@@ -587,7 +607,7 @@ class SimpleProxyManager extends utils.Adapter {
         const headers = { 'Content-Type': 'text/html; charset=utf-8' };
         if (this.hstsHeader) headers['Strict-Transport-Security'] = this.hstsHeader;
         res.writeHead(502, headers);
-        res.end('<h1>502 Bad Gateway</h1><p>Backend nicht erreichbar.</p>');
+        res.end('<h1>502 Bad Gateway</h1>');
       } else if (res && typeof res.destroy === 'function') {
         // WebSocket-Upgrade: res ist ein net.Socket
         res.destroy();
