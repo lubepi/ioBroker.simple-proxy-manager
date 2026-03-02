@@ -24,24 +24,6 @@ Simple HTTPS/HTTP reverse proxy manager for ioBroker.
 - **ACME adapter** for automatic SSL certificates (optional – also usable without certificates)
 - The configured ports must be available (defaults: 80 for HTTP, 443 for HTTPS)
 
-### Port Binding (important!)
-
-Ports below 1024 (such as 80 and 443) require elevated privileges on Linux.
-
-**Option 1 – setcap (recommended):**
-
-```bash
-sudo setcap 'cap_net_bind_service=+ep' $(which node)
-```
-
-> **Note:** This must be re-run after every Node.js update.
-
-**Option 2 – Ports above 1024 + router forwarding:**
-
-Configure the adapter to use e.g. port 8443/8080 and set up port forwarding in your router:
-- Router port 443 → server port 8443
-- Router port 80 → server port 8080
-
 ## Installation
 
 ### Local Installation (Development)
