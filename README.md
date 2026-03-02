@@ -15,14 +15,14 @@ Simple HTTPS/HTTP reverse proxy manager for ioBroker.
 - **HSTS** (Strict-Transport-Security)
 - **WebSocket support** (e.g. for ioBroker Admin)
 - **Dual-stack** IPv4 + IPv6
-- **Change Origin** option (e.g. for FritzBox)
+- **Change Origin** option
 
 ## Prerequisites
 
 - **Node.js** >= 18
 - **ioBroker** with js-controller >= 5.0.0
 - **ACME adapter** for automatic SSL certificates (optional – also usable without certificates)
-- Ports 80 and 443 must be available
+- The configured ports must be available (defaults: 80 for HTTP, 443 for HTTPS)
 
 ### Port Binding (important!)
 
