@@ -21,68 +21,68 @@ class SimpleProxyManager extends utils.Adapter {
     this.proxy = null;
     this.certCheckInterval = null;
     this.certContexts = {};   // hostname -> tls.SecureContext
-    this.certHashes = {};     // collectionName -> cert string (Änderungserkennung)
+    this.certHashes = {};     // collectionName -> cert string (change detection)
     this.backends = {};
     this.hstsHeader = null;
   }
 
-  // ============ ADAPTER START ============
+  // ============ ADAPTER STARTUP ============
 
   async onReady() {
     const config = this.config;
 
-    // Backends aus Konfiguration laden
+    // Load backends from configuration
     if (!config.backends || config.backends.length === 0) {
-      this.log.warn('Keine Backends konfiguriert – Adapter wartet auf Konfiguration');
+      this.log.warn('No backends configured – adapter waiting for configuration');
       return;
     }
 
     for (const entry of config.backends) {
       if (!entry.enabled) continue;
 
-      // Hostname und Ziel-URL sind Pflichtfelder
+      // Hostname and target URL are required fields
       if (!entry.hostname) {
-        this.log.error('Konfigurationsfehler: Ein Backend hat keinen Hostnamen – bitte Konfiguration prüfen.');
-        this.terminate('Ungültige Konfiguration: Hostname fehlt');
+        this.log.error('Configuration error: A backend has no hostname – please check the configuration.');
+        this.terminate('Invalid configuration: hostname missing');
         return;
       }
 
-      // Hostname validieren (RFC 1123)
+      // Validate hostname (RFC 1123)
       if (!SimpleProxyManager.isValidHostname(entry.hostname)) {
-        this.log.error('Konfigurationsfehler: Ungültiger Hostname "' + entry.hostname + '".');
-        this.log.error('Erlaubt: Buchstaben, Ziffern, Bindestriche und Punkte. Kein Port-Suffix, max. 253 Zeichen.');
-        this.terminate('Ungültige Konfiguration: Hostname "' + entry.hostname + '"');
+        this.log.error('Configuration error: Invalid hostname "' + entry.hostname + '".');
+        this.log.error('Allowed: letters, digits, hyphens and dots. No port suffix, max. 253 characters.');
+        this.terminate('Invalid configuration: hostname "' + entry.hostname + '"');
         return;
       }
       if (!entry.target) {
-        this.log.error('Konfigurationsfehler: Backend "' + entry.hostname + '" hat kein Ziel (Ziel-URL fehlt).');
-        this.terminate('Ungültige Konfiguration: Ziel-URL fehlt für ' + entry.hostname);
+        this.log.error('Configuration error: Backend "' + entry.hostname + '" has no target (target URL missing).');
+        this.terminate('Invalid configuration: target URL missing for ' + entry.hostname);
         return;
       }
 
-      // Ziel-URL validieren
+      // Validate target URL
       try {
         new URL(entry.target);
       } catch (_) {
-        this.log.error('Konfigurationsfehler: Ungültige Ziel-URL für "' + entry.hostname + '": ' + entry.target);
-        this.terminate('Ungültige Konfiguration: Ziel-URL für ' + entry.hostname);
+        this.log.error('Configuration error: Invalid target URL for "' + entry.hostname + '": ' + entry.target);
+        this.terminate('Invalid configuration: target URL for ' + entry.hostname);
         return;
       }
 
-      // allowedNetworks: kommaseparierter String → Array
+      // allowedNetworks: comma-separated string → array
       let networks = [];
       if (entry.allowedNetworks) {
         networks = entry.allowedNetworks.split(',').map(s => s.trim()).filter(Boolean);
       }
 
-      // CIDR-Netzwerke parsen – ungültige Einträge beenden den Adapter
+      // Parse CIDR networks – invalid entries terminate the adapter
       const parsedNetworks = [];
       for (const cidr of networks) {
         const parsed = SimpleProxyManager.parseCIDR(cidr);
         if (parsed === null) {
-          this.log.error('Konfigurationsfehler: Ungültiger CIDR-Eintrag "' + cidr + '" für Backend "' + entry.hostname + '".');
-          this.log.error('Ohne gültige IP-Filterung würde der Zugriff für alle IPs erlaubt sein – Adapter wird gestoppt.');
-          this.terminate('Ungültige Konfiguration: CIDR "' + cidr + '" für ' + entry.hostname);
+          this.log.error('Configuration error: Invalid CIDR entry "' + cidr + '" for backend "' + entry.hostname + '".');
+          this.log.error('Without valid IP filtering all IPs would be allowed – adapter is stopping.');
+          this.terminate('Invalid configuration: CIDR "' + cidr + '" for ' + entry.hostname);
           return;
         }
         parsedNetworks.push(parsed);
@@ -98,54 +98,54 @@ class SimpleProxyManager extends utils.Adapter {
     }
 
     if (Object.keys(this.backends).length === 0) {
-      this.log.warn('Keine aktiven Backends konfiguriert');
+      this.log.warn('No active backends configured');
       return;
     }
 
-    // HSTS-Header vorbereiten (nur für HTTPS-Backends relevant)
+    // Prepare HSTS header (only relevant for HTTPS backends)
     if (config.enableHSTS) {
       this.hstsHeader = 'max-age=' + (config.hstsMaxAge || 31536000) + '; includeSubDomains';
     }
 
-    // ioBroker-Standard-Zertifikat prüfen (Pflicht-Voraussetzung)
+    // Check ioBroker default certificate (mandatory prerequisite)
     const certsObj = await this.getForeignObjectAsync('system.certificates');
     const sysCerts = (certsObj && certsObj.native && certsObj.native.certificates) || {};
     if (!sysCerts.defaultPrivate || !(sysCerts.defaultPublic || sysCerts.defaultChained)) {
-      this.log.error('=== ioBroker-Standard-Zertifikat fehlt! ===');
-      this.log.error('Der Adapter benötigt das ioBroker-Standard-Zertifikat (defaultPrivate + defaultPublic).');
-      this.log.error('Bitte erstellen mit: iobroker cert create');
-      this.log.error('Adapter wird gestoppt.');
+      this.log.error('=== ioBroker default certificate missing! ===');
+      this.log.error('The adapter requires the ioBroker default certificate (defaultPrivate + defaultPublic).');
+      this.log.error('Please create it with: iobroker cert create');
+      this.log.error('Adapter is stopping.');
       if (typeof this.terminate === 'function') {
-        this.terminate('ioBroker-Standard-Zertifikat fehlt');
+        this.terminate('ioBroker default certificate missing');
       }
       return;
     }
 
-    // SSL-Zertifikate laden
+    // Load SSL certificates
     const sslOptions = await this.loadAllCertificates();
     if (sslOptions === null) return;
 
-    // Proxy starten (HTTP + HTTPS)
+    // Start proxy (HTTP + HTTPS)
     this.startProxy(sslOptions);
   }
 
-  // ============ SSL ZERTIFIKATE AUS IOBROKER ============
+  // ============ SSL CERTIFICATES FROM IOBROKER ============
 
   /**
-   * Löst eine Zertifikat-Quelle aus system.certificates auf.
-   * Unterstützt:
-   *  - Eigene Zertifikate nach Namenskonvention: {baseName}Private (Key),
-   *    {baseName}Chained oder {baseName}Public (Cert) – wird zuerst geprüft.
-   *    Gilt auch für das ioBroker-Standard-Zertifikat (Basisname: "default")
-   *  - ACME-Style Collections: key (PEM) + chain[] (PEM-Array)
-   *  - Referenz-Style Collections: key/cert verweisen auf Namen in native.certificates
+   * Resolves a certificate source from system.certificates.
+   * Supports:
+   *  - Named certificates following the convention: {baseName}Private (key),
+   *    {baseName}Chained or {baseName}Public (cert) – checked first.
+   *    Also applies to the ioBroker default certificate (base name: "default")
+   *  - ACME-style collections: key (PEM) + chain[] (PEM array)
+   *  - Reference-style collections: key/cert point to names in native.certificates
    */
   resolveCertCollection(collectionName, certsObj) {
     const collections = certsObj.native.collections || {};
     const certificates = certsObj.native.certificates || {};
 
-    // Eigene Zertifikate nach Namenskonvention: {baseName}Private / {baseName}Chained / {baseName}Public
-    // Gilt auch für das ioBroker-Standard-Zertifikat (Basisname: "default")
+    // Named certificates: {baseName}Private / {baseName}Chained / {baseName}Public
+    // Also applies to the ioBroker default certificate (base name: "default")
     const namedKey = certificates[collectionName + 'Private'];
     const namedCert = certificates[collectionName + 'Chained'] || certificates[collectionName + 'Public'];
     if (namedKey && namedCert) {
@@ -158,11 +158,11 @@ class SimpleProxyManager extends utils.Adapter {
     let key, cert;
 
     if (coll.chain && Array.isArray(coll.chain) && coll.chain.length > 0) {
-      // ACME-Style: key ist PEM direkt, chain ist Array von PEM-Zertifikaten
+      // ACME-style: key is PEM directly, chain is array of PEM certificates
       key = coll.key;
       cert = coll.chain.join('');
     } else {
-      // Referenz-Style: key/cert sind Namen die auf native.certificates zeigen
+      // Reference-style: key/cert are names pointing to native.certificates
       key = certificates[coll.key] || coll.key;
       cert = certificates[coll.cert] || coll.cert;
     }
@@ -178,28 +178,28 @@ class SimpleProxyManager extends utils.Adapter {
   }
 
   /**
-   * Lädt alle von Backends benötigten Zertifikate und erstellt pro Hostname
-   * einen tls.SecureContext für SNI.
+   * Loads all certificates required by backends and creates a
+   * tls.SecureContext per hostname for SNI.
    */
   async loadAllCertificates() {
     try {
       const obj = await this.getForeignObjectAsync('system.certificates');
       if (!obj || !obj.native) {
-        this.log.error('system.certificates nicht gefunden');
+        this.log.error('system.certificates not found');
         return null;
       }
 
-      // Verfügbare Collections anzeigen
+      // Log available collections
       const availableCollections = Object.keys(obj.native.collections || {});
-      this.log.info('Verfügbare Zertifikat-Collections: ' + availableCollections.join(', '));
+      this.log.info('Available certificate collections: ' + availableCollections.join(', '));
 
-      // Alle von Backends verwendeten Collection-Namen sammeln
+      // Collect all collection names used by backends
       const usedCollections = new Set();
       for (const backend of Object.values(this.backends)) {
         if (backend.certificate) usedCollections.add(backend.certificate);
       }
 
-      // ioBroker-Standard-Zertifikat (immer "default")
+      // ioBroker default certificate (always "default")
       const defaultCertName = 'default';
       usedCollections.add(defaultCertName);
 
@@ -207,18 +207,18 @@ class SimpleProxyManager extends utils.Adapter {
       let minDaysLeft = Infinity;
       let earliestExpiry = null;
 
-      // Jede Collection auflösen und SecureContexts erstellen
+      // Resolve each collection and create SecureContexts
       for (const collName of usedCollections) {
         const resolved = this.resolveCertCollection(collName, obj);
         if (!resolved) {
-          this.log.error('Zertifikat-Collection "' + collName + '" nicht gefunden oder unvollständig');
+          this.log.error('Certificate collection "' + collName + '" not found or incomplete');
           continue;
         }
 
-        // Cert-Inhalt für Änderungserkennung cachen
+        // Cache cert content for change detection
         this.certHashes[collName] = resolved.cert;
 
-        // SecureContext für jeden Hostname erstellen der diese Collection nutzt
+        // Create SecureContext for every hostname that uses this collection
         const ctx = tls.createSecureContext({ key: resolved.key, cert: resolved.cert });
         for (const [hostname, backend] of Object.entries(this.backends)) {
           if (backend.certificate === collName) {
@@ -226,48 +226,48 @@ class SimpleProxyManager extends utils.Adapter {
           }
         }
 
-        // Default-Zertifikat für HTTPS-Server
+        // Default certificate for HTTPS server
         if (collName === defaultCertName || !defaultSslOptions) {
           defaultSslOptions = { key: resolved.key, cert: resolved.cert };
         }
 
-        // Ablauf tracken (nur für Collections mit tsExpires, z.B. ACME)
+        // Track expiry (only for collections with tsExpires, e.g. ACME)
         if (resolved.tsExpires) {
           const daysLeft = Math.floor((resolved.tsExpires - Date.now()) / (1000 * 60 * 60 * 24));
           if (daysLeft < minDaysLeft) {
             minDaysLeft = daysLeft;
             earliestExpiry = new Date(resolved.tsExpires);
           }
-          this.log.info('Zertifikat "' + collName + '": Domains=' + resolved.domains.join(', ') + ', gültig bis ' + new Date(resolved.tsExpires).toLocaleDateString('de-DE'));
+          this.log.info('Certificate "' + collName + '": domains=' + resolved.domains.join(', ') + ', valid until ' + new Date(resolved.tsExpires).toLocaleDateString('en-GB'));
           if (this.config.certWarnDays > 0 && daysLeft < this.config.certWarnDays) {
-            this.log.warn('Zertifikat "' + collName + '" läuft in ' + daysLeft + ' Tagen ab!');
+            this.log.warn('Certificate "' + collName + '" expires in ' + daysLeft + ' days!');
           }
         } else {
-          this.log.info('Zertifikat "' + collName + '" geladen (Self-Signed / kein Ablaufdatum)');
+          this.log.info('Certificate "' + collName + '" loaded (self-signed / no expiry date)');
         }
       }
 
-      // States aktualisieren (frühester Ablauf aller Zertifikate)
+      // Update states (earliest expiry across all certificates)
       if (earliestExpiry) {
-        await this.setStateAsync('info.certificateExpires', earliestExpiry.toLocaleDateString('de-DE'), true);
+        await this.setStateAsync('info.certificateExpires', earliestExpiry.toLocaleDateString('en-GB'), true);
         await this.setStateAsync('info.certificateDaysLeft', minDaysLeft, true);
       }
 
       if (!defaultSslOptions) {
-        this.log.error('Alle konfigurierten Zertifikat-Collections konnten nicht geladen werden – HTTPS-Server kann nicht starten');
+        this.log.error('All configured certificate collections failed to load – HTTPS server cannot start');
         return null;
       }
 
       return defaultSslOptions;
     } catch (e) {
-      this.log.error('Fehler beim Laden der Zertifikate: ' + e.message);
+      this.log.error('Error loading certificates: ' + e.message);
       return null;
     }
   }
 
   /**
-   * Prüft alle verwendeten Zertifikat-Collections auf Änderungen
-   * und aktualisiert die SNI-Kontexte bei Bedarf.
+   * Checks all used certificate collections for changes
+   * and updates the SNI contexts if needed.
    */
   async checkCertificateRenewal() {
     try {
@@ -282,7 +282,7 @@ class SimpleProxyManager extends utils.Adapter {
       const defaultCertName = 'default';
       const checkedCollections = new Set();
 
-      // Default-Zertifikat immer prüfen
+      // Always check default certificate
       checkedCollections.add(defaultCertName);
       for (const backend of Object.values(this.backends)) {
         if (backend.certificate) checkedCollections.add(backend.certificate);
@@ -293,10 +293,10 @@ class SimpleProxyManager extends utils.Adapter {
         const resolved = this.resolveCertCollection(collName, obj);
         if (!resolved) continue;
 
-        // Prüfen ob sich der Cert-Inhalt geändert hat
+        // Check whether cert content has changed
         if (resolved.cert !== this.certHashes[collName]) {
           const ctx = tls.createSecureContext({ key: resolved.key, cert: resolved.cert });
-          // Alle Hostnames aktualisieren die diese Collection nutzen
+          // Update all hostnames that use this collection
           for (const [h, b] of Object.entries(this.backends)) {
             if (b.certificate === collName) {
               this.certContexts[h] = ctx;
@@ -304,10 +304,10 @@ class SimpleProxyManager extends utils.Adapter {
           }
           this.certHashes[collName] = resolved.cert;
           changed = true;
-          this.log.info('Zertifikat "' + collName + '" automatisch neu geladen');
+          this.log.info('Certificate "' + collName + '" automatically reloaded');
         }
 
-        // Ablauf tracken
+        // Track expiry
         if (resolved.tsExpires) {
           const daysLeft = Math.floor((resolved.tsExpires - Date.now()) / (1000 * 60 * 60 * 24));
           if (daysLeft < minDaysLeft) {
@@ -315,43 +315,43 @@ class SimpleProxyManager extends utils.Adapter {
             earliestExpiry = new Date(resolved.tsExpires);
           }
           if (this.config.certWarnDays > 0 && daysLeft < this.config.certWarnDays) {
-            this.log.warn('Zertifikat "' + collName + '" läuft in ' + daysLeft + ' Tagen ab!');
+            this.log.warn('Certificate "' + collName + '" expires in ' + daysLeft + ' days!');
           }
         }
 
-        // Default-Cert für Server-Kontext merken
+        // Remember default cert for server context
         if (collName === defaultCertName || !newDefault) {
           newDefault = resolved;
         }
       }
 
-      // Default Server-Kontext aktualisieren wenn sich etwas geändert hat
+      // Update default server context if anything changed
       if (changed && newDefault && this.httpsServer) {
         this.httpsServer.setSecureContext({ key: newDefault.key, cert: newDefault.cert });
       }
 
-      // States aktualisieren
+      // Update states
       if (earliestExpiry) {
-        await this.setStateAsync('info.certificateExpires', earliestExpiry.toLocaleDateString('de-DE'), true);
+        await this.setStateAsync('info.certificateExpires', earliestExpiry.toLocaleDateString('en-GB'), true);
         await this.setStateAsync('info.certificateDaysLeft', minDaysLeft, true);
       }
     } catch (e) {
-      this.log.error('Fehler bei Zertifikat-Prüfung: ' + e.message);
+      this.log.error('Error checking certificates: ' + e.message);
     }
   }
 
-  // ============ HOSTNAME-VALIDIERUNG ============
+  // ============ HOSTNAME VALIDATION ============
 
   /**
-   * Prüft ob ein Hostname gemäß RFC 1123 gültig ist.
-   * Erlaubt: a-z, A-Z, 0-9, Bindestrich, Punkt.
-   * Kein Label darf mit Bindestrich beginnen oder enden.
-   * Max. 253 Zeichen gesamt, max. 63 Zeichen pro Label.
-   * Kein Port-Suffix erlaubt.
+   * Checks whether a hostname is valid according to RFC 1123.
+   * Allowed: a-z, A-Z, 0-9, hyphens, dots.
+   * No label may start or end with a hyphen.
+   * Max. 253 characters total, max. 63 characters per label.
+   * No port suffix allowed.
    */
   static isValidHostname(hostname) {
     if (!hostname || typeof hostname !== 'string') return false;
-    if (hostname.includes(':')) return false; // kein Port erlaubt
+    if (hostname.includes(':')) return false; // no port allowed
     if (hostname.length > 253) return false;
     const labels = hostname.split('.');
     return labels.every(label =>
@@ -361,7 +361,7 @@ class SimpleProxyManager extends utils.Adapter {
     );
   }
 
-  // ============ IP-PARSING (CIDR) ============
+  // ============ IP PARSING (CIDR) ============
 
   static parseIPv4(ip) {
     const parts = ip.split('.');
@@ -436,16 +436,16 @@ class SimpleProxyManager extends utils.Adapter {
     return true;
   }
 
-  // ============ IP-PRÜFUNG ============
+  // ============ IP FILTERING ============
 
   /**
-   * Ermittelt die echte Client-IP aus dem Socket.
-   * X-Forwarded-For wird NICHT vertraut (Spoofing-Schutz).
-   * Der Proxy setzt xfwd:true und ergänzt den Header korrekt für die Backends.
+   * Determines the real client IP from the socket.
+   * X-Forwarded-For is NOT trusted (spoofing protection).
+   * The proxy uses xfwd:true and adds the header correctly for backends.
    */
   getClientIP(req) {
     const ip = req.socket.remoteAddress;
-    // IPv6-mapped IPv4 Adressen konvertieren (::ffff:192.168.0.1 -> 192.168.0.1)
+    // Convert IPv6-mapped IPv4 addresses (::ffff:192.168.0.1 -> 192.168.0.1)
     if (ip && ip.startsWith('::ffff:') && ip.includes('.')) return ip.substring(7);
     return ip;
   }
@@ -454,10 +454,10 @@ class SimpleProxyManager extends utils.Adapter {
     if (!clientIP) return false;
 
     const networks = backend.parsedNetworks;
-    // Keine Netzwerke konfiguriert = alle IPs erlaubt
+    // No networks configured = all IPs allowed
     if (!networks || networks.length === 0) return true;
 
-    // Localhost ist immer erlaubt
+    // Localhost is always allowed
     if (clientIP === '127.0.0.1' || clientIP === '::1') return true;
 
     const ipBytes = SimpleProxyManager.parseIP(clientIP);
@@ -469,11 +469,11 @@ class SimpleProxyManager extends utils.Adapter {
     return false;
   }
 
-  // ============ REQUEST HANDLER ============
+  // ============ REQUEST HANDLERS ============
 
   /**
-   * Entfernt eingehende X-Forwarded-* Headers um Spoofing zu verhindern.
-   * http-proxy (xfwd:true) setzt diese anschließend mit korrekten Werten vom Socket.
+   * Removes incoming X-Forwarded-* headers to prevent spoofing.
+   * http-proxy (xfwd:true) then re-adds them with correct values from the socket.
    */
   stripForwardedHeaders(req) {
     delete req.headers['x-forwarded-for'];
@@ -483,8 +483,8 @@ class SimpleProxyManager extends utils.Adapter {
   }
 
   /**
-   * HTTPS Request Handler: Bedient nur Backends die ein Zertifikat haben.
-   * Backends ohne Zertifikat bekommen einen Hinweis auf HTTP.
+   * HTTPS request handler: serves only backends that have a certificate.
+   * Backends without a certificate receive an HTTP redirect.
    */
   handleRequest(req, res) {
     this.stripForwardedHeaders(req);
@@ -496,8 +496,8 @@ class SimpleProxyManager extends utils.Adapter {
       this.log.info(clientIP + ' -> HTTPS ' + host + req.url);
     }
 
-    // Backend ohne Zertifikat → nur über HTTP erreichbar
-    // (unbekannte Hosts werden bereits im SNICallback auf TLS-Ebene abgelehnt)
+    // Backend without certificate → only reachable via HTTP
+    // (unknown hosts are already rejected at TLS level in SNICallback)
     if (!backend.certificate) {
       const httpPort = this.config.httpPort || 80;
       const portSuffix = httpPort === 80 ? '' : ':' + httpPort;
@@ -508,7 +508,7 @@ class SimpleProxyManager extends utils.Adapter {
 
     // IP-Filterung
     if (!this.isAllowedIP(clientIP, backend)) {
-      if (this.config.logSecurity) this.log.warn('Zugriff verweigert für ' + clientIP + ' auf ' + host);
+      if (this.config.logSecurity) this.log.warn('Access denied for ' + clientIP + ' on ' + host);
       const headers = { 'Content-Type': 'text/html; charset=utf-8' };
       if (this.hstsHeader) headers['Strict-Transport-Security'] = this.hstsHeader;
       res.writeHead(403, headers);
@@ -516,12 +516,12 @@ class SimpleProxyManager extends utils.Adapter {
       return;
     }
 
-    // HSTS nur für HTTPS-Backends
+    // HSTS only for HTTPS backends
     if (this.hstsHeader) {
       res.setHeader('Strict-Transport-Security', this.hstsHeader);
     }
 
-    // Request an Backend weiterleiten
+    // Forward request to backend
     this.proxy.web(req, res, {
       target: backend.target,
       changeOrigin: backend.changeOrigin,
@@ -529,13 +529,13 @@ class SimpleProxyManager extends utils.Adapter {
   }
 
   /**
-   * HTTP Request Handler: Bedient Backends ohne Zertifikat direkt.
-   * Backends mit Zertifikat werden auf HTTPS umgeleitet.
-   * ACME-Challenges werden immer weitergeleitet.
+   * HTTP request handler: serves backends without a certificate directly.
+   * Backends with a certificate are redirected to HTTPS.
+   * ACME challenges are always forwarded.
    */
   handleHttpRequest(req, res) {
     this.stripForwardedHeaders(req);
-    // ACME-Challenge weiterleiten (nur wenn acmePort konfiguriert)
+    // Forward ACME challenge (only when acmePort is configured)
     if (this.config.acmePort && req.url.startsWith('/.well-known/acme-challenge/')) {
       this.proxy.web(req, res, { target: 'http://127.0.0.1:' + this.config.acmePort });
       return;
@@ -549,15 +549,15 @@ class SimpleProxyManager extends utils.Adapter {
       this.log.info(clientIP + ' -> HTTP ' + host + req.url);
     }
 
-    // Unbekannter Host
+    // Unknown host
     if (!backend) {
-      this.log.debug('Unbekannter Host (HTTP): ' + host);
+      this.log.debug('Unknown host (HTTP): ' + host);
       res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end('<h1>404 Not Found</h1>');
       return;
     }
 
-    // Backend mit Zertifikat → auf HTTPS umleiten
+    // Backend with certificate → redirect to HTTPS
     if (backend.certificate) {
       const httpsPort = this.config.httpsPort || 443;
       const portSuffix = httpsPort === 443 ? '' : ':' + httpsPort;
@@ -568,13 +568,13 @@ class SimpleProxyManager extends utils.Adapter {
 
     // IP-Filterung
     if (!this.isAllowedIP(clientIP, backend)) {
-      if (this.config.logSecurity) this.log.warn('Zugriff verweigert für ' + clientIP + ' auf ' + host + ' (HTTP)');
+      if (this.config.logSecurity) this.log.warn('Access denied for ' + clientIP + ' on ' + host + ' (HTTP)');
       res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end('<h1>403 Forbidden</h1>');
       return;
     }
 
-    // Request an Backend weiterleiten (HTTP)
+    // Forward request to backend (HTTP)
     this.proxy.web(req, res, {
       target: backend.target,
       changeOrigin: backend.changeOrigin,
@@ -597,7 +597,7 @@ class SimpleProxyManager extends utils.Adapter {
       return;
     }
 
-    // HTTPS-Upgrade nur für Backends mit Zertifikat, HTTP-Upgrade nur für ohne
+    // HTTPS upgrade only for backends with certificate, HTTP upgrade only for those without
     if (isHttps && !backend.certificate) {
       socket.destroy();
       return;
@@ -607,9 +607,9 @@ class SimpleProxyManager extends utils.Adapter {
       return;
     }
 
-    // IP-Filterung auch für WebSockets
+    // IP filtering for WebSockets as well
     if (!this.isAllowedIP(clientIP, backend)) {
-      if (this.config.logSecurity) this.log.warn('WebSocket-Zugriff verweigert für ' + clientIP);
+      if (this.config.logSecurity) this.log.warn('WebSocket access denied for ' + clientIP);
       socket.destroy();
       return;
     }
@@ -620,58 +620,58 @@ class SimpleProxyManager extends utils.Adapter {
     });
   }
 
-  // ============ PROXY STARTEN ============
+  // ============ PROXY STARTUP ============
 
   startProxy(sslOptions) {
     const config = this.config;
 
-    // Proxy-Server erstellen
+    // Create proxy server
     this.proxy = httpProxy.createProxyServer({
-      xfwd: true,         // X-Forwarded-* Headers hinzufügen
-      ws: true,            // WebSocket-Unterstützung
-      proxyTimeout: 30000, // 30s Backend-Timeout
-      timeout: 30000,      // 30s Socket-Timeout
+      xfwd: true,         // add X-Forwarded-* headers
+      ws: true,            // WebSocket support
+      proxyTimeout: 30000, // 30s backend timeout
+      timeout: 30000,      // 30s socket timeout
     });
 
-    // Fehlerbehandlung für Proxy (res kann bei WebSocket-Upgrades ein Socket sein)
+    // Error handling for proxy (res can be a socket during WebSocket upgrades)
     this.proxy.on('error', (err, req, res) => {
-      this.log.error('Proxy-Fehler: ' + err.message);
+      this.log.error('Proxy error: ' + err.message);
       if (res && typeof res.writeHead === 'function' && !res.headersSent) {
         const headers = { 'Content-Type': 'text/html; charset=utf-8' };
         if (this.hstsHeader) headers['Strict-Transport-Security'] = this.hstsHeader;
         res.writeHead(502, headers);
         res.end('<h1>502 Bad Gateway</h1>');
       } else if (res && typeof res.destroy === 'function') {
-        // WebSocket-Upgrade: res ist ein net.Socket
+        // WebSocket upgrade: res is a net.Socket
         res.destroy();
       }
     });
 
-    // HSTS-Header für alle Proxy-Antworten (nur HTTPS)
+    // HSTS header for all proxy responses (HTTPS only)
     if (this.hstsHeader) {
       this.proxy.on('proxyRes', (proxyRes, req) => {
-        // HSTS nur für verschlüsselte Verbindungen setzen
+        // Only set HSTS for encrypted connections
         if (req.socket.encrypted) {
           proxyRes.headers['strict-transport-security'] = this.hstsHeader;
         }
       });
     }
 
-    // ---- HTTPS-Server (immer, Default-Zertifikat ist Pflicht) ----
+    // ---- HTTPS server (always on, default certificate is mandatory) ----
     this.httpsServer = https.createServer({
       ...sslOptions,
       SNICallback: (servername, cb) => {
         const name = (servername || '').toLowerCase();
         const ctx = this.certContexts[name];
         if (ctx) {
-          // Bekannter Host mit eigenem Zertifikat
+          // Known host with its own certificate
           cb(null, ctx);
         } else if (this.backends[name]) {
-          // Backend ohne eigenes Zertifikat → Default-Kontext für HTTP-Redirect
+          // Backend without own certificate → default context for HTTP redirect
           cb(null, null);
         } else {
-          // Unbekannter Hostname → TLS-Handshake ablehnen
-          this.log.debug('TLS-Handshake abgelehnt für unbekannten Host: ' + servername);
+          // Unknown hostname → reject TLS handshake
+          this.log.debug('TLS handshake rejected for unknown host: ' + servername);
           cb(new Error('Unknown hostname'));
         }
       },
@@ -685,21 +685,21 @@ class SimpleProxyManager extends utils.Adapter {
 
     const httpsPort = config.httpsPort || 443;
     this.httpsServer.listen(httpsPort, '::', () => {
-      this.log.info('HTTPS Reverse Proxy läuft auf Port ' + httpsPort + ' (IPv4 + IPv6)');
+      this.log.info('HTTPS reverse proxy running on port ' + httpsPort + ' (IPv4 + IPv6)');
       this.setState('info.connection', true, true);
     });
 
     this.httpsServer.on('error', (err) => {
-      this.log.error('HTTPS-Server Fehler: ' + err.message);
+      this.log.error('HTTPS server error: ' + err.message);
       if (err.code === 'EADDRINUSE') {
-        this.log.error('Port ' + httpsPort + ' wird bereits verwendet!');
+        this.log.error('Port ' + httpsPort + ' is already in use!');
       } else if (err.code === 'EACCES') {
-        this.log.error('Keine Berechtigung für Port ' + httpsPort + ' – siehe README für setcap');
+        this.log.error('No permission for port ' + httpsPort + ' – see README for setcap');
       }
       this.setState('info.connection', false, true);
     });
 
-    // ---- HTTP-Server (läuft immer) ----
+    // ---- HTTP server (always on) ----
     const httpPort = config.httpPort || 80;
     this.httpServer = http.createServer((req, res) => {
       this.handleHttpRequest(req, res);
@@ -710,41 +710,41 @@ class SimpleProxyManager extends utils.Adapter {
     });
 
     this.httpServer.listen(httpPort, '::', () => {
-      this.log.info('HTTP Server läuft auf Port ' + httpPort + ' (IPv4 + IPv6)');
+      this.log.info('HTTP server running on port ' + httpPort + ' (IPv4 + IPv6)');
     });
 
     this.httpServer.on('error', (err) => {
-      this.log.error('HTTP-Server Fehler: ' + err.message);
+      this.log.error('HTTP server error: ' + err.message);
       if (err.code === 'EADDRINUSE') {
-        this.log.error('Port ' + httpPort + ' wird bereits verwendet!');
+        this.log.error('Port ' + httpPort + ' is already in use!');
       } else if (err.code === 'EACCES') {
-        this.log.error('Keine Berechtigung für Port ' + httpPort + ' – siehe README für setcap');
+        this.log.error('No permission for port ' + httpPort + ' – see README for setcap');
       }
     });
 
-    // Backend-Übersicht loggen
-    this.log.info('Konfigurierte Backends:');
+    // Log backend overview
+    this.log.info('Configured backends:');
     for (const [host, cfg] of Object.entries(this.backends)) {
       const proto = cfg.certificate ? 'HTTPS' : 'HTTP';
       const certInfo = cfg.certificate ? ' [cert: ' + cfg.certificate + ']' : '';
-      const netInfo = cfg.allowedNetworks.length > 0 ? ' (Netze: ' + cfg.allowedNetworks.join(', ') + ')' : ' (alle IPs)';
+      const netInfo = cfg.allowedNetworks.length > 0 ? ' (networks: ' + cfg.allowedNetworks.join(', ') + ')' : ' (all IPs)';
       this.log.info('  ' + host + ' -> ' + cfg.target + ' [' + proto + ']' + certInfo + netInfo);
     }
 
-    // Zertifikat-Auto-Reload
+    // Certificate auto-reload
     const checkIntervalMs = (config.certCheckHours || 1) * 3600000;
     this.certCheckInterval = setInterval(() => {
       this.checkCertificateRenewal();
     }, checkIntervalMs);
 
-    this.log.info('Zertifikat-Prüfintervall: alle ' + (config.certCheckHours || 1) + ' Stunde(n)');
+    this.log.info('Certificate check interval: every ' + (config.certCheckHours || 1) + ' hour(s)');
   }
 
   // ============ MESSAGE HANDLER (Admin UI) ============
 
   /**
-   * Wird von der Admin-Oberfläche aufgerufen (selectSendTo).
-   * Liefert die verfügbaren Zertifikat-Collections aus system.certificates.
+   * Called by the admin UI (selectSendTo).
+   * Returns available certificate collections from system.certificates.
    */
   async onMessage(obj) {
     if (!obj || !obj.command) return;
@@ -753,14 +753,14 @@ class SimpleProxyManager extends utils.Adapter {
       try {
         const certsObj = await this.getForeignObjectAsync('system.certificates');
         const result = [
-          { value: '', label: '(kein Zertifikat)' },
+          { value: '', label: '(no certificate)' },
         ];
 
         if (certsObj && certsObj.native) {
           const certs = certsObj.native.certificates || {};
 
-          // Zertifikate nach Namenskonvention {name}Private / {name}Public / {name}Chained
-          // Erfasst auch das ioBroker-Standard-Zertifikat (Basisname: "default")
+          // Named certificates: {name}Private / {name}Public / {name}Chained
+          // Also includes the ioBroker default certificate (base name: "default")
           const certBases = new Set();
           for (const key of Object.keys(certs)) {
             if (key.endsWith('Private')) {
@@ -774,7 +774,7 @@ class SimpleProxyManager extends utils.Adapter {
             result.push({ value: base, label: base });
           }
 
-          // Collections (ACME, manuelle, etc.)
+          // Collections (ACME, manual, etc.)
           const collections = Object.keys(certsObj.native.collections || {});
           for (const name of collections) {
             result.push({ value: name, label: name });
@@ -785,7 +785,7 @@ class SimpleProxyManager extends utils.Adapter {
           this.sendTo(obj.from, obj.command, result, obj.callback);
         }
       } catch (e) {
-        this.log.error('Fehler beim Abrufen der Zertifikat-Collections: ' + e.message);
+        this.log.error('Error fetching certificate collections: ' + e.message);
         if (obj.callback) {
           this.sendTo(obj.from, obj.command, [], obj.callback);
         }
@@ -797,7 +797,7 @@ class SimpleProxyManager extends utils.Adapter {
 
   onUnload(callback) {
     try {
-      this.log.info('Reverse Proxy wird gestoppt...');
+      this.log.info('Reverse proxy stopping...');
 
       if (this.certCheckInterval) {
         clearInterval(this.certCheckInterval);
@@ -818,13 +818,13 @@ class SimpleProxyManager extends utils.Adapter {
 
       this.setState('info.connection', false, true);
     } catch (e) {
-      // Fehler beim Cleanup ignorieren
+      // Ignore cleanup errors
     }
     callback();
   }
 }
 
-// Adapter-Export
+// Adapter export
 if (require.main !== module) {
   module.exports = (options) => new SimpleProxyManager(options);
 } else {

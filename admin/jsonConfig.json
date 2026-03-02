@@ -3,7 +3,7 @@
   "items": {
     "_general": {
       "type": "panel",
-      "label": "Allgemein",
+      "label": "General",
       "items": {
         "_serverHeader": {
           "type": "header",
@@ -18,7 +18,7 @@
           "md": 4,
           "min": 1,
           "max": 65535,
-          "help": "Port für den HTTPS Reverse Proxy (Standard: 443)."
+          "help": "Port for the HTTPS reverse proxy (default: 443)."
         },
         "httpPort": {
           "type": "number",
@@ -27,7 +27,7 @@
           "md": 4,
           "min": 0,
           "max": 65535,
-          "help": "Port f\u00fcr den HTTP-Server (Standard: 80). Backends ohne Zertifikat werden hier direkt bedient. Backends mit Zertifikat werden auf HTTPS umgeleitet."
+          "help": "Port for the HTTP server (default: 80). Backends without a certificate are served directly here. Backends with a certificate are redirected to HTTPS."
         },
         "acmePort": {
           "type": "number",
@@ -35,49 +35,49 @@
           "sm": 12,
           "md": 4,
           "min": 0,
-          "help": "Interner Port des ACME-Adapters für HTTP-01-Challenge-Weiterleitung. 0 = Weiterleitung deaktiviert."
+          "help": "Internal port of the ACME adapter for HTTP-01 challenge forwarding. 0 = disabled."
         },
         "_securityHeader": {
           "type": "header",
-          "text": "Sicherheit",
+          "text": "Security",
           "size": 4,
           "sm": 12
         },
         "enableHSTS": {
           "type": "checkbox",
-          "label": "HSTS aktivieren (Strict-Transport-Security)",
+          "label": "Enable HSTS (Strict-Transport-Security)",
           "sm": 12,
           "md": 4
         },
         "hstsMaxAge": {
           "type": "number",
-          "label": "HSTS max-age (Sekunden)",
+          "label": "HSTS max-age (seconds)",
           "sm": 12,
           "md": 4,
           "min": 0,
-          "help": "Standard: 31536000 (1 Jahr)"
+          "help": "Default: 31536000 (1 year)"
         },
         "_certHeader": {
           "type": "header",
-          "text": "Zertifikat-Überwachung",
+          "text": "Certificate Monitoring",
           "size": 4,
           "sm": 12
         },
         "certCheckHours": {
           "type": "number",
-          "label": "Prüfintervall (Stunden)",
+          "label": "Check interval (hours)",
           "sm": 12,
           "md": 4,
           "min": 1,
-          "help": "Wie oft Zertifikate auf Änderungen geprüft werden. Bei Erneuerung werden die SNI-Kontexte automatisch aktualisiert."
+          "help": "How often certificates are checked for changes. SNI contexts are automatically updated on renewal."
         },
         "certWarnDays": {
           "type": "number",
-          "label": "Ablaufwarnung (Tage)",
+          "label": "Expiry warning (days)",
           "sm": 12,
           "md": 4,
           "min": 0,
-          "help": "Warnung im Log wenn ein Zertifikat in weniger als X Tagen abläuft. 0 = deaktiviert."
+          "help": "Log a warning when a certificate expires in less than X days. 0 = disabled."
         },
         "_loggingHeader": {
           "type": "header",
@@ -87,17 +87,17 @@
         },
         "logSecurity": {
           "type": "checkbox",
-          "label": "Sicherheitsmeldungen protokollieren",
+          "label": "Log security events",
           "sm": 12,
-          "md": 6,
-          "help": "Loggt verweigerte Zugriffe (IP-Filterung, WebSocket). Start/Stop-Meldungen werden immer geloggt."
+          "md": 4,
+          "help": "Logs denied access (IP filtering, WebSocket)."
         },
         "logRequests": {
           "type": "checkbox",
-          "label": "Alle Anfragen protokollieren",
+          "label": "Log all requests",
           "sm": 12,
-          "md": 6,
-          "help": "Loggt jede eingehende Anfrage (HTTP, HTTPS, WebSocket) mit IP, Host und URL."
+          "md": 4,
+          "help": "Logs every incoming request (HTTP, HTTPS, WebSocket) with IP, host and URL."
         }
       }
     },
@@ -107,7 +107,7 @@
       "items": {
         "_info": {
           "type": "header",
-          "text": "Proxy-Backends (Virtual Hosts)",
+          "text": "Proxy Backends (Virtual Hosts)",
           "size": 4,
           "sm": 12
         },
@@ -120,7 +120,7 @@
               "type": "checkbox",
               "attr": "enabled",
               "width": "6%",
-              "title": "Aktiv",
+              "title": "Active",
               "default": true
             },
             {
@@ -134,7 +134,7 @@
               "type": "text",
               "attr": "target",
               "width": "20%",
-              "title": "Ziel-URL",
+              "title": "Target URL",
               "placeholder": "http://127.0.0.1:3000"
             },
             {
@@ -142,13 +142,13 @@
               "command": "getCertificateCollections",
               "attr": "certificate",
               "width": "13%",
-              "title": "Zertifikat"
+              "title": "Certificate"
             },
             {
               "type": "text",
               "attr": "allowedNetworks",
               "width": "25%",
-              "title": "Erlaubte Netze",
+              "title": "Allowed Networks",
               "placeholder": "192.168.0.0/24, fd00::/8"
             },
             {
@@ -163,7 +163,7 @@
         "_help": {
           "type": "staticText",
           "sm": 12,
-          "text": "**Hostname**: Domain die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Zertifikat**: Zertifikat aus `system.certificates`. Mit Zertifikat = HTTPS + HTTP\u2192HTTPS Redirect. Ohne Zertifikat = nur HTTP (kein HTTPS f\u00fcr diesen Host). **Erlaubte Netze**: Kommaseparierte CIDR-Netzwerke/IPs (IPv4 + IPv6). Wenn leer, ist der Zugriff von \u00fcberall erlaubt. **Change Origin**: Host-Header auf Ziel-IP umschreiben."
+          "text": "**Hostname**: Domain pointing to this server via DNS. **Target URL**: Backend address (http://IP:Port). **Certificate**: Certificate from `system.certificates`. With certificate = HTTPS + HTTP\u2192HTTPS redirect. Without certificate = HTTP only (no HTTPS for this host). **Allowed Networks**: Comma-separated CIDR networks/IPs (IPv4 + IPv6). If empty, access is allowed from everywhere. **Change Origin**: Rewrite Host header to target IP."
         }
       }
     }
