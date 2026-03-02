@@ -46,6 +46,14 @@ class SimpleProxyManager extends utils.Adapter {
         this.terminate('Ungültige Konfiguration: Hostname fehlt');
         return;
       }
+
+      // Hostname validieren (RFC 1123)
+      if (!SimpleProxyManager.isValidHostname(entry.hostname)) {
+        this.log.error('Konfigurationsfehler: Ungültiger Hostname "' + entry.hostname + '".');
+        this.log.error('Erlaubt: Buchstaben, Ziffern, Bindestriche und Punkte. Kein Port-Suffix, max. 253 Zeichen.');
+        this.terminate('Ungültige Konfiguration: Hostname "' + entry.hostname + '"');
+        return;
+      }
       if (!entry.target) {
         this.log.error('Konfigurationsfehler: Backend "' + entry.hostname + '" hat kein Ziel (Ziel-URL fehlt).');
         this.terminate('Ungültige Konfiguration: Ziel-URL fehlt für ' + entry.hostname);
@@ -330,6 +338,27 @@ class SimpleProxyManager extends utils.Adapter {
     } catch (e) {
       this.log.error('Fehler bei Zertifikat-Prüfung: ' + e.message);
     }
+  }
+
+  // ============ HOSTNAME-VALIDIERUNG ============
+
+  /**
+   * Prüft ob ein Hostname gemäß RFC 1123 gültig ist.
+   * Erlaubt: a-z, A-Z, 0-9, Bindestrich, Punkt.
+   * Kein Label darf mit Bindestrich beginnen oder enden.
+   * Max. 253 Zeichen gesamt, max. 63 Zeichen pro Label.
+   * Kein Port-Suffix erlaubt.
+   */
+  static isValidHostname(hostname) {
+    if (!hostname || typeof hostname !== 'string') return false;
+    if (hostname.includes(':')) return false; // kein Port erlaubt
+    if (hostname.length > 253) return false;
+    const labels = hostname.split('.');
+    return labels.every(label =>
+      label.length > 0 &&
+      label.length <= 63 &&
+      /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/.test(label)
+    );
   }
 
   // ============ IP-PARSING (CIDR) ============
