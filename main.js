@@ -204,6 +204,18 @@ class SimpleProxyManager extends utils.Adapter {
       const defaultCertName = 'default';
       usedCollections.add(defaultCertName);
 
+      // Remove states for certificates no longer assigned to any backend
+      const existingChannels = await this.getChannelsOfAsync('certificates');
+      for (const channel of (existingChannels || [])) {
+        const certName = channel._id.split('.').pop();
+        if (!usedCollections.has(certName)) {
+          await this.delObjectAsync('certificates.' + certName + '.expires');
+          await this.delObjectAsync('certificates.' + certName + '.daysLeft');
+          await this.delObjectAsync('certificates.' + certName);
+          this.log.info('Removed stale certificate states for "' + certName + '"');
+        }
+      }
+
       let defaultSslOptions = null;
 
       // Resolve each collection and create SecureContexts
