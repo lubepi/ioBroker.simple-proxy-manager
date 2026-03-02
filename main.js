@@ -368,6 +368,8 @@ class SimpleProxyManager extends utils.Adapter {
     if (parts.length !== 4) return null;
     const bytes = parts.map(Number);
     if (bytes.some(b => isNaN(b) || b < 0 || b > 255)) return null;
+    // Return as 16-byte IPv6-mapped IPv4 address (::ffff:x.x.x.x)
+    // so all IP comparisons can be done uniformly in 128-bit space.
     return [0,0,0,0, 0,0,0,0, 0,0,0xff,0xff, bytes[0], bytes[1], bytes[2], bytes[3]];
   }
 
@@ -418,6 +420,8 @@ class SimpleProxyManager extends utils.Adapter {
     if (parts.length === 2) {
       prefixLen = parseInt(parts[1], 10);
       if (isNaN(prefixLen)) return null;
+      // IPv4 prefixes are shifted by 96 bits (128 − 32) to match
+      // the IPv6-mapped IPv4 representation used internally.
       if (!isV6) prefixLen += 96;
     } else {
       prefixLen = 128;
@@ -450,6 +454,12 @@ class SimpleProxyManager extends utils.Adapter {
     return ip;
   }
 
+  /**
+   * Checks whether a client IP is allowed to access a backend.
+   * Returns true if no networks are configured (open access),
+   * if the client is localhost, or if the IP matches one of the
+   * configured CIDR ranges.
+   */
   isAllowedIP(clientIP, backend) {
     if (!clientIP) return false;
 
@@ -506,7 +516,7 @@ class SimpleProxyManager extends utils.Adapter {
       return;
     }
 
-    // IP-Filterung
+    // IP filtering
     if (!this.isAllowedIP(clientIP, backend)) {
       if (this.config.logSecurity) this.log.warn('Access denied for ' + clientIP + ' on ' + host);
       const headers = { 'Content-Type': 'text/html; charset=utf-8' };
@@ -566,7 +576,7 @@ class SimpleProxyManager extends utils.Adapter {
       return;
     }
 
-    // IP-Filterung
+    // IP filtering
     if (!this.isAllowedIP(clientIP, backend)) {
       if (this.config.logSecurity) this.log.warn('Access denied for ' + clientIP + ' on ' + host + ' (HTTP)');
       res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -581,6 +591,12 @@ class SimpleProxyManager extends utils.Adapter {
     });
   }
 
+  /**
+   * WebSocket upgrade handler for both HTTPS (WSS) and HTTP (WS).
+   * Enforces IP filtering and protocol/certificate consistency:
+   * WSS upgrades are only forwarded for backends with a certificate,
+   * WS upgrades only for backends without.
+   */
   handleUpgrade(req, socket, head) {
     this.stripForwardedHeaders(req);
     const host = (req.headers.host || '').split(':')[0].toLowerCase();
