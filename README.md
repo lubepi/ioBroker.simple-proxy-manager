@@ -56,7 +56,7 @@ iobroker add simple-proxy-manager
 
 ```bash
 cd /opt/iobroker
-iobroker url https://github.com/user/ioBroker.simple-proxy-manager
+iobroker url https://github.com/lubepi/ioBroker.simple-proxy-manager
 ```
 
 ## Configuration
