@@ -1053,7 +1053,7 @@ class SimpleProxyManager extends utils.Adapter {
 
     // Certificate auto-reload
     const checkIntervalMs = (config.certCheckHours || 1) * 3600000;
-    this.certCheckInterval = setInterval(() => {
+    this.certCheckInterval = this.setInterval(() => {
       this.checkCertificateRenewal();
     }, checkIntervalMs);
 
@@ -1126,7 +1126,7 @@ class SimpleProxyManager extends utils.Adapter {
       this.log.info("Reverse proxy stopping...");
 
       if (this.certCheckInterval) {
-        clearInterval(this.certCheckInterval);
+        this.clearInterval(this.certCheckInterval);
         this.certCheckInterval = null;
       }
 
