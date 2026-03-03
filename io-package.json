@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "simple-proxy-manager",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "titleLang": {
       "en": "Simple Proxy Manager",
       "de": "Einfacher Proxy Manager",
@@ -61,6 +61,19 @@
       { "admin": ">=7.6.20" }
     ],
     "news": {
+      "0.1.3": {
+        "en": "Add ESLint, release-script, .vscode settings, code cleanup",
+        "de": "ESLint, Release-Script, .vscode-Einstellungen und Code-Bereinigung hinzugefügt",
+        "ru": "Добавлены ESLint, release-script, настройки .vscode, очистка кода",
+        "pt": "Adicionado ESLint, release-script, configurações .vscode, limpeza de código",
+        "nl": "ESLint, release-script, .vscode-instellingen en code-opschoning toegevoegd",
+        "fr": "Ajout ESLint, release-script, paramètres .vscode, nettoyage du code",
+        "it": "Aggiunti ESLint, release-script, impostazioni .vscode, pulizia codice",
+        "es": "Añadido ESLint, release-script, configuración .vscode, limpieza de código",
+        "pl": "Dodano ESLint, release-script, ustawienia .vscode, porządki w kodzie",
+        "uk": "Додано ESLint, release-script, налаштування .vscode, очищення коду",
+        "zh-cn": "添加 ESLint、release-script、.vscode 设置，代码清理"
+      },
       "0.1.2": {
         "en": "Update dependencies, add responsive layout, add Changelog/License to README",
         "de": "Abhängigkeiten aktualisiert, responsives Layout hinzugefügt, Changelog/Lizenz in README ergänzt",

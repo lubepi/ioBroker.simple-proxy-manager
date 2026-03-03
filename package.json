@@ -1,6 +1,6 @@
 {
   "name": "iobroker.simple-proxy-manager",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Simple HTTPS Reverse Proxy Manager for ioBroker",
   "author": {
     "name": "lubepi"

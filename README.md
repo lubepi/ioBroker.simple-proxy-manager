@@ -150,6 +150,11 @@ All certificates loaded at startup are printed to the log.
 
 ## Changelog
 
+### 0.1.3
+- Add ESLint with @iobroker/eslint-config, auto-fix all issues
+- Add @alcalzone/release-script with all plugins
+- Add .vscode/settings.json with JSON schema definitions
+
 ### 0.1.2
 - Update dependencies to satisfy adapter checker requirements
 - Add responsive layout (xs/lg/xl) to jsonConfig
