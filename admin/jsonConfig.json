@@ -141,7 +141,11 @@
         },
         "backends": {
           "type": "table",
+          "xs": 12,
           "sm": 12,
+          "md": 12,
+          "lg": 12,
+          "xl": 12,
           "uniqueColumns": ["hostname"],
           "items": [
             {
@@ -190,7 +194,11 @@
         },
         "_help": {
           "type": "staticText",
+          "xs": 12,
           "sm": 12,
+          "md": 12,
+          "lg": 12,
+          "xl": 12,
           "text": "backendsHelp"
         }
       }
