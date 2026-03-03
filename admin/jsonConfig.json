@@ -1,4 +1,5 @@
 {
+  "i18n": true,
   "type": "tabs",
   "items": {
     "_general": {
@@ -163,7 +164,7 @@
         "_help": {
           "type": "staticText",
           "sm": 12,
-          "text": "**Hostname**: Domain pointing to this server via DNS. **Target URL**: Backend address (http://IP:Port). **Certificate**: Certificate from `system.certificates`. With certificate = HTTPS + HTTP\u2192HTTPS redirect. Without certificate = HTTP only (no HTTPS for this host). **Allowed Networks**: Comma-separated CIDR networks/IPs (IPv4 + IPv6). If empty, access is allowed from everywhere. **Change Origin**: Rewrite Host header to target IP."
+          "text": "backendsHelp"
         }
       }
     }

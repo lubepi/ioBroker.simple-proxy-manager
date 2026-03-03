@@ -5,11 +5,29 @@
     "title": "Simple Proxy Manager",
     "titleLang": {
       "en": "Simple Proxy Manager",
-      "de": "Einfacher Proxy Manager"
+      "de": "Einfacher Proxy Manager",
+      "ru": "Простой менеджер прокси",
+      "pt": "Gerenciador de proxy simples",
+      "nl": "Eenvoudige proxybeheerder",
+      "fr": "Gestionnaire de proxy simple",
+      "it": "Gestore proxy semplice",
+      "es": "Gestor de proxy simple",
+      "pl": "Prosty menedżer proxy",
+      "uk": "Простий менеджер проксі",
+      "zh-cn": "简单代理管理器"
     },
     "desc": {
       "en": "Simple HTTPS reverse proxy manager with virtual hosts, IP filtering and automatic certificate reload",
-      "de": "Einfacher HTTPS Reverse Proxy Manager mit virtuellen Hosts, IP-Filterung und automatischem Zertifikat-Reload"
+      "de": "Einfacher HTTPS-Reverse-Proxy-Manager mit virtuellen Hosts, IP-Filterung und automatischem Zertifikat-Reload",
+      "ru": "Простой менеджер обратного прокси HTTPS с виртуальными хостами, IP-фильтрацией и автоматической перезагрузкой сертификатов",
+      "pt": "Gerenciador simples de proxy reverso HTTPS com hosts virtuais, filtragem de IP e recarregamento automático de certificados",
+      "nl": "Eenvoudige HTTPS reverse proxy-beheerder met virtuele hosts, IP-filtering en automatisch herladen van certificaten",
+      "fr": "Gestionnaire de proxy inverse HTTPS simple avec hôtes virtuels, filtrage IP et rechargement automatique des certificats",
+      "it": "Semplice gestore di reverse proxy HTTPS con host virtuali, filtro IP e ricaricamento automatico dei certificati",
+      "es": "Gestor simple de proxy inverso HTTPS con hosts virtuales, filtrado de IP y recarga automática de certificados",
+      "pl": "Prosty menedżer odwrotnego proxy HTTPS z hostami wirtualnymi, filtrowaniem IP i automatycznym przeładowaniem certyfikatów",
+      "uk": "Простий менеджер зворотного проксі HTTPS з віртуальними хостами, IP-фільтрацією та автоматичним перезавантаженням сертифікатів",
+      "zh-cn": "简单的 HTTPS 反向代理管理器，支持虚拟主机、IP 过滤和自动证书重载"
     },
     "authors": ["lubepi"],
     "keywords": ["proxy", "reverse proxy", "https", "ssl", "virtual host"],

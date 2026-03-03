@@ -179,10 +179,6 @@ class SimpleProxyManager extends utils.Adapter {
   }
 
   /**
-   * Loads all certificates required by backends and creates a
-   * tls.SecureContext per hostname for SNI.
-   */
-  /**
    * Loads all certificates required by the configured backends plus the
    * ioBroker default certificate. Creates TLS SecureContexts for SNI,
    * removes stale per-certificate states from previous configurations,
@@ -566,8 +562,14 @@ class SimpleProxyManager extends utils.Adapter {
       this.log.info(clientIP + ' -> HTTPS ' + host + req.url);
     }
 
+    // Unknown host (should not happen – SNICallback rejects unknown hosts)
+    if (!backend) {
+      res.writeHead(421, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end('<h1>421 Misdirected Request</h1>');
+      return;
+    }
+
     // Backend without certificate → only reachable via HTTP
-    // (unknown hosts are already rejected at TLS level in SNICallback)
     if (!backend.certificate) {
       const httpPort = this.config.httpPort || 80;
       const portSuffix = httpPort === 80 ? '' : ':' + httpPort;
