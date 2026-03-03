@@ -141,6 +141,13 @@ All certificates loaded at startup are printed to the log.
 
 ## Changelog
 
+### 0.1.4
+- Add CI/CD workflows (test-and-release) and adapter tests
+- Add dependabot auto-merge workflow
+- Fix: use `this.setInterval`/`this.clearInterval` per ioBroker best practices
+- Fix: remove redundant mocha devDependency (included in @iobroker/testing)
+- Clean up README installation section
+
 ### 0.1.3
 - Add ESLint with @iobroker/eslint-config, auto-fix all issues
 - Add @alcalzone/release-script with all plugins

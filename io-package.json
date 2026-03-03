@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "simple-proxy-manager",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "titleLang": {
       "en": "Simple Proxy Manager",
       "de": "Einfacher Proxy Manager",
@@ -61,6 +61,19 @@
       { "admin": ">=7.6.20" }
     ],
     "news": {
+      "0.1.4": {
+        "en": "Add CI/CD workflows, tests, fix timer cleanup, remove redundant mocha dependency",
+        "de": "CI/CD-Workflows und Tests hinzugefügt, Timer-Cleanup korrigiert, redundante mocha-Abhängigkeit entfernt",
+        "ru": "Добавлены CI/CD-воркфлоу и тесты, исправлена очистка таймера, удалена лишняя зависимость mocha",
+        "pt": "Adicionados workflows CI/CD e testes, correção de limpeza de timer, dependência mocha redundante removida",
+        "nl": "CI/CD-workflows en tests toegevoegd, timer-opruiming gecorrigeerd, redundante mocha-afhankelijkheid verwijderd",
+        "fr": "Ajout workflows CI/CD et tests, correction nettoyage timer, dépendance mocha redondante supprimée",
+        "it": "Aggiunti workflow CI/CD e test, correzione pulizia timer, dipendenza mocha ridondante rimossa",
+        "es": "Añadidos workflows CI/CD y pruebas, corrección limpieza de timer, dependencia mocha redundante eliminada",
+        "pl": "Dodano workflows CI/CD i testy, poprawiono czyszczenie timera, usunięto zbędną zależność mocha",
+        "uk": "Додано CI/CD-воркфлоу та тести, виправлено очищення таймера, видалено зайву залежність mocha",
+        "zh-cn": "添加 CI/CD 工作流和测试，修复定时器清理，移除冗余 mocha 依赖"
+      },
       "0.1.3": {
         "en": "Add ESLint, release-script, .vscode settings, code cleanup",
         "de": "ESLint, Release-Script, .vscode-Einstellungen und Code-Bereinigung hinzugefügt",
