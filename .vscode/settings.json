@@ -1,0 +1,15 @@
+{
+    "json.schemas": [
+        {
+            "fileMatch": ["io-package.json"],
+            "url": "https://raw.githubusercontent.com/ioBroker/adapter-react-v5/main/schemas/io-package.json"
+        },
+        {
+            "fileMatch": ["admin/jsonConfig.json", "admin/jsonCustom.json", "admin/jsonTab.json"],
+            "url": "https://raw.githubusercontent.com/ioBroker/adapter-react-v5/main/schemas/jsonConfig.json"
+        }
+    ],
+    "files.associations": {
+        "admin/i18n/*.json": "json"
+    }
+}
