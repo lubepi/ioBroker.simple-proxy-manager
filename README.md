@@ -26,20 +26,11 @@ Simple HTTPS/HTTP reverse proxy manager for ioBroker.
 
 ## Installation
 
-### Local Installation (Development)
+Install the adapter via the ioBroker Admin UI:
 
-```bash
-cd /opt/iobroker
-npm install /path/to/ioBroker.simple-proxy-manager
-iobroker add simple-proxy-manager
-```
-
-### Via GitHub URL
-
-```bash
-cd /opt/iobroker
-iobroker url https://github.com/lubepi/ioBroker.simple-proxy-manager
-```
+1. Open the **Adapters** page in ioBroker Admin
+2. Search for **simple-proxy-manager**
+3. Click **Install**
 
 ## Configuration
 
