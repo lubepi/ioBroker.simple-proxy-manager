@@ -19,8 +19,8 @@ Simple HTTPS/HTTP reverse proxy manager for ioBroker.
 
 ## Prerequisites
 
-- **Node.js** >= 18
-- **ioBroker** with js-controller >= 5.0.0
+- **Node.js** >= 20
+- **ioBroker** with js-controller >= 6.0.11
 - **ACME adapter** for automatic SSL certificates (optional – also usable without certificates)
 - The configured ports must be available (defaults: 80 for HTTP, 443 for HTTPS)
 
@@ -148,6 +148,41 @@ Hosts with an unknown hostname are rejected at the TLS level – no fallback cer
 
 All certificates loaded at startup are printed to the log.
 
-## Licence
+## Changelog
 
-MIT License – see [LICENSE](LICENSE)
+### 0.1.2
+- Update dependencies to satisfy adapter checker requirements
+- Add responsive layout (xs/lg/xl) to jsonConfig
+- Add Changelog and License sections to README
+
+### 0.1.1
+- Fix crash on unknown HTTPS host (421 response instead of UNCAUGHT_EXCEPTION)
+- Add i18n for all 11 ioBroker languages
+- Update dependencies (@iobroker/adapter-core, @iobroker/testing)
+
+### 0.1.0
+- Initial release
+
+## License
+
+MIT License
+
+Copyright (c) 2026 lubepi
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

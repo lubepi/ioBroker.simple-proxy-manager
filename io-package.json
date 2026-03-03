@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "simple-proxy-manager",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "titleLang": {
       "en": "Simple Proxy Manager",
       "de": "Einfacher Proxy Manager",
@@ -55,10 +55,25 @@
       "config": "json"
     },
     "dependencies": [
-      { "js-controller": ">=5.0.19" }
+      { "js-controller": ">=6.0.11" }
     ],
-    "globalDependencies": [],
+    "globalDependencies": [
+      { "admin": ">=7.6.17" }
+    ],
     "news": {
+      "0.1.2": {
+        "en": "Update dependencies, add responsive layout, add Changelog/License to README",
+        "de": "Abhängigkeiten aktualisiert, responsives Layout hinzugefügt, Changelog/Lizenz in README ergänzt",
+        "ru": "Обновлены зависимости, добавлена адаптивная верстка, добавлены Changelog/License в README",
+        "pt": "Dependências atualizadas, layout responsivo adicionado, Changelog/Licença no README",
+        "nl": "Afhankelijkheden bijgewerkt, responsieve lay-out toegevoegd, Changelog/Licentie in README",
+        "fr": "Dépendances mises à jour, mise en page responsive ajoutée, Changelog/Licence dans README",
+        "it": "Dipendenze aggiornate, layout responsive aggiunto, Changelog/Licenza nel README",
+        "es": "Dependencias actualizadas, diseño responsive añadido, Changelog/Licencia en README",
+        "pl": "Zaktualizowano zależności, dodano responsywny układ, Changelog/Licencja w README",
+        "uk": "Оновлено залежності, додано адаптивний макет, Changelog/Ліцензія в README",
+        "zh-cn": "更新依赖，添加响应式布局，在 README 中添加更新日志/许可证"
+      },
       "0.1.1": {
         "en": "Fix crash on unknown HTTPS host, add i18n, update dependencies",
         "de": "Absturz bei unbekanntem HTTPS-Host behoben, i18n hinzugefügt, Abhängigkeiten aktualisiert",

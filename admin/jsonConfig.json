@@ -15,8 +15,11 @@
         "httpsPort": {
           "type": "number",
           "label": "HTTPS Port",
+          "xs": 12,
           "sm": 12,
           "md": 4,
+          "lg": 4,
+          "xl": 4,
           "min": 1,
           "max": 65535,
           "help": "Port for the HTTPS reverse proxy (default: 443)."
@@ -24,8 +27,11 @@
         "httpPort": {
           "type": "number",
           "label": "HTTP Port",
+          "xs": 12,
           "sm": 12,
           "md": 4,
+          "lg": 4,
+          "xl": 4,
           "min": 0,
           "max": 65535,
           "help": "Port for the HTTP server (default: 80). Backends without a certificate are served directly here. Backends with a certificate are redirected to HTTPS."
@@ -33,8 +39,11 @@
         "acmePort": {
           "type": "number",
           "label": "ACME Adapter Port",
+          "xs": 12,
           "sm": 12,
           "md": 4,
+          "lg": 4,
+          "xl": 4,
           "min": 0,
           "help": "Internal port of the ACME adapter for HTTP-01 challenge forwarding. 0 = disabled."
         },
@@ -47,14 +56,20 @@
         "enableHSTS": {
           "type": "checkbox",
           "label": "Enable HSTS (Strict-Transport-Security)",
+          "xs": 12,
           "sm": 12,
-          "md": 4
+          "md": 4,
+          "lg": 4,
+          "xl": 4
         },
         "hstsMaxAge": {
           "type": "number",
           "label": "HSTS max-age (seconds)",
+          "xs": 12,
           "sm": 12,
           "md": 4,
+          "lg": 4,
+          "xl": 4,
           "min": 0,
           "help": "Default: 31536000 (1 year)"
         },
@@ -67,16 +82,22 @@
         "certCheckHours": {
           "type": "number",
           "label": "Check interval (hours)",
+          "xs": 12,
           "sm": 12,
           "md": 4,
+          "lg": 4,
+          "xl": 4,
           "min": 1,
           "help": "How often certificates are checked for changes. SNI contexts are automatically updated on renewal."
         },
         "certWarnDays": {
           "type": "number",
           "label": "Expiry warning (days)",
+          "xs": 12,
           "sm": 12,
           "md": 4,
+          "lg": 4,
+          "xl": 4,
           "min": 0,
           "help": "Log a warning when a certificate expires in less than X days. 0 = disabled."
         },
@@ -89,15 +110,21 @@
         "logSecurity": {
           "type": "checkbox",
           "label": "Log security events",
+          "xs": 12,
           "sm": 12,
           "md": 4,
+          "lg": 4,
+          "xl": 4,
           "help": "Logs denied access (IP filtering, WebSocket)."
         },
         "logRequests": {
           "type": "checkbox",
           "label": "Log all requests",
+          "xs": 12,
           "sm": 12,
           "md": 4,
+          "lg": 4,
+          "xl": 4,
           "help": "Logs every incoming request (HTTP, HTTPS, WebSocket) with IP, host and URL."
         }
       }
