@@ -1,11 +1,15 @@
 {
   "name": "iobroker.simple-proxy-manager",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Simple HTTPS Reverse Proxy Manager for ioBroker",
   "author": {
     "name": "lubepi"
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lubepi/ioBroker.simple-proxy-manager.git"
+  },
   "keywords": [
     "ioBroker",
     "proxy",
@@ -18,8 +22,11 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@iobroker/adapter-core": "^3.1.4",
+    "@iobroker/adapter-core": "^3.2.2",
     "http-proxy": "^1.18.1"
+  },
+  "devDependencies": {
+    "@iobroker/testing": "^4.1.3"
   },
   "main": "main.js",
   "files": [
@@ -29,6 +36,6 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "echo \"No tests yet\""
+    "test": "node node_modules/@iobroker/testing/build/tests/packageFiles.js"
   }
 }

@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "simple-proxy-manager",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "title": "Simple Proxy Manager",
     "titleLang": {
       "en": "Simple Proxy Manager",
@@ -57,6 +57,19 @@
     ],
     "globalDependencies": [],
     "news": {
+      "0.1.1": {
+        "en": "Fix crash on unknown HTTPS host, add i18n, update dependencies",
+        "de": "Absturz bei unbekanntem HTTPS-Host behoben, i18n hinzugefügt, Abhängigkeiten aktualisiert",
+        "ru": "Исправлен сбой при неизвестном HTTPS-хосте, добавлена i18n, обновлены зависимости",
+        "pt": "Corrigido erro em host HTTPS desconhecido, adicionado i18n, dependências atualizadas",
+        "nl": "Crash bij onbekende HTTPS-host opgelost, i18n toegevoegd, afhankelijkheden bijgewerkt",
+        "fr": "Correction du crash sur hôte HTTPS inconnu, ajout i18n, dépendances mises à jour",
+        "it": "Corretto crash su host HTTPS sconosciuto, aggiunto i18n, dipendenze aggiornate",
+        "es": "Corregido error en host HTTPS desconocido, añadido i18n, dependencias actualizadas",
+        "pl": "Naprawiono awarię przy nieznanym hoście HTTPS, dodano i18n, zaktualizowano zależności",
+        "uk": "Виправлено збій при невідомому HTTPS-хості, додано i18n, оновлено залежності",
+        "zh-cn": "修复未知 HTTPS 主机崩溃问题，添加 i18n，更新依赖"
+      },
       "0.1.0": {
         "en": "Initial release",
         "de": "Erstveröffentlichung",
