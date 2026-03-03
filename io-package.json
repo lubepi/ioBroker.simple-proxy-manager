@@ -2,7 +2,6 @@
   "common": {
     "name": "simple-proxy-manager",
     "version": "0.1.1",
-    "title": "Simple Proxy Manager",
     "titleLang": {
       "en": "Simple Proxy Manager",
       "de": "Einfacher Proxy Manager",
@@ -31,9 +30,11 @@
     },
     "authors": ["lubepi"],
     "keywords": ["proxy", "reverse proxy", "https", "ssl", "virtual host"],
-    "license": "MIT",
+    "licenseInformation": {
+      "license": "MIT",
+      "type": "free"
+    },
     "platform": "Javascript/Node.js",
-    "main": "main.js",
     "icon": "simple-proxy-manager.png",
     "enabled": true,
     "extIcon": "https://raw.githubusercontent.com/lubepi/ioBroker.simple-proxy-manager/main/admin/simple-proxy-manager.png",
@@ -41,6 +42,7 @@
     "loglevel": "info",
     "mode": "daemon",
     "type": "network",
+    "tier": 3,
     "compact": true,
     "messagebox": true,
     "supportedMessages": {
@@ -53,7 +55,7 @@
       "config": "json"
     },
     "dependencies": [
-      { "js-controller": ">=5.0.0" }
+      { "js-controller": ">=5.0.19" }
     ],
     "globalDependencies": [],
     "news": {
