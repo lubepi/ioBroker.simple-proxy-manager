@@ -36,8 +36,8 @@
     "main": "main.js",
     "icon": "simple-proxy-manager.png",
     "enabled": true,
-    "extIcon": "",
-    "readme": "",
+    "extIcon": "https://raw.githubusercontent.com/lubepi/ioBroker.simple-proxy-manager/main/admin/simple-proxy-manager.png",
+    "readme": "https://github.com/lubepi/ioBroker.simple-proxy-manager/blob/main/README.md",
     "loglevel": "info",
     "mode": "daemon",
     "type": "network",
@@ -55,7 +55,22 @@
     "dependencies": [
       { "js-controller": ">=5.0.0" }
     ],
-    "globalDependencies": []
+    "globalDependencies": [],
+    "news": {
+      "0.1.0": {
+        "en": "Initial release",
+        "de": "Erstveröffentlichung",
+        "ru": "Первый выпуск",
+        "pt": "Lançamento inicial",
+        "nl": "Eerste uitgave",
+        "fr": "Version initiale",
+        "it": "Rilascio iniziale",
+        "es": "Versión inicial",
+        "pl": "Pierwsze wydanie",
+        "uk": "Перший випуск",
+        "zh-cn": "首次发布"
+      }
+    }
   },
   "native": {
     "httpsPort": 443,
