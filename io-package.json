@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "simple-proxy-manager",
-    "version": "0.1.4",
+    "version": "0.1.5",
     "titleLang": {
       "en": "Simple Proxy Manager",
       "de": "Einfacher Proxy Manager",
@@ -28,8 +28,16 @@
       "uk": "Простий менеджер зворотного проксі HTTPS з віртуальними хостами, IP-фільтрацією та автоматичним перезавантаженням сертифікатів",
       "zh-cn": "简单的 HTTPS 反向代理管理器，支持虚拟主机、IP 过滤和自动证书重载"
     },
-    "authors": ["lubepi"],
-    "keywords": ["proxy", "reverse proxy", "https", "ssl", "virtual host"],
+    "authors": [
+      "lubepi"
+    ],
+    "keywords": [
+      "proxy",
+      "reverse proxy",
+      "https",
+      "ssl",
+      "virtual host"
+    ],
     "licenseInformation": {
       "license": "MIT",
       "type": "free"
@@ -55,12 +63,29 @@
       "config": "json"
     },
     "dependencies": [
-      { "js-controller": ">=6.0.11" }
+      {
+        "js-controller": ">=6.0.11"
+      }
     ],
     "globalDependencies": [
-      { "admin": ">=7.6.20" }
+      {
+        "admin": ">=7.6.20"
+      }
     ],
     "news": {
+      "0.1.5": {
+        "en": "Fix GitHub repository checker issues (E8903, E8912)\nMigrate dependabot automerge workflow to new iobroker-bot-orga action\nAdd github-actions ecosystem to dependabot config\nAdd CI workflow dependency: adapter-tests now requires check-and-lint\nAdd auto-merge configuration",
+        "de": "Fix GitHub Repository Checker Probleme (E8903, E8912)\nMigrieren Sie abhängigabot Automerge-Workflow zu neuen iobroker-bot-orga-Action\nFügen Sie github-actions Ökosystem zu Abhängigkeitabot config\nCI-Workflow-Abhängigkeit hinzufügen: Adapter-Tests benötigen jetzt Check-and-lint\nAutomerge-Konfiguration hinzufügen",
+        "ru": "Исправьте проблемы проверки репозитория GitHub (E8903, E8912)\nMigrate Dependabot Automerge Workflow для нового iobroker-bot-orga\nДобавить экосистему github-actions в конфигурацию зависимого робота\nДобавьте зависимость от рабочего процесса CI: теперь для адаптеров требуются галочки\nДобавить конфигурацию Auto-merge",
+        "pt": "Corrigir os problemas do verificador do repositório GitHub (E8903, E8912)\nMigrar o fluxo de trabalho de auto- fusão dependente para nova ação iobroker-bot-orga\nAdicionar o ecossistema github- actions à configuração dependente\nAdicionar dependência de fluxo de trabalho CI: adaptadores-testes agora requer check-and-lint\nAdicionar uma configuração de auto- fusão",
+        "nl": "Fix GitHub repository checker problemen (E8903, E8912)\nMigrate dependabot automerge workflow naar nieuwe iobroker-bot-orga actie\nGithub-actions ecosysteem toevoegen aan dependabot config\nCI-workflowafhankelijkheid toevoegen: adaptertests vereisen nu check-and-lint\nAuto-samenvoegconfiguratie toevoegen",
+        "fr": "Correction des problèmes de vérification du dépôt GitHub (E8903, E8912)\nMigrer le flux de travail automatique de dependabot vers une nouvelle action iobroker-bot-orga\nAjouter l'écosystème github-actions à la configuration de dependabot\nAjout de la dépendance au flux de travail de CI : les tests d'adaptateurs nécessitent désormais une vérification et une vérification\nAjouter une configuration de fusion automatique",
+        "it": "Risolvere i problemi del repository GitHub (E8903, E8912)\nMigrate dipendeabot automerge flusso di lavoro a nuova azione iobroker-bot-orga\nAggiungere ecosistema github-actions a dipendeabot config\nAggiunga la dipendenza del flusso di lavoro CI: i test dell'adattatore ora richiedono il check-and-lint\nAggiungere la configurazione automatica",
+        "es": "Arreglar los problemas del repositorio GitHub (E8903, E8912)\nMigrate dependabot automerge workflow to new iobroker-bot-orga action\nAñadir github-actions ecosistema a dependeabot config\nAñada dependencia del flujo de trabajo de CI: las pruebas de adaptador ahora requieren check-and-lint\nAgregue la configuración de auto-merge",
+        "pl": "Naprawiono problemy z sprawdzaniem repozytorium GitHub (E8903, E8912)\nMigracja zależnej automatyzacji do nowego działania iobroker- bot- orga\nDodaj github-actions ekosystem do konfiguracji zależnej\nDodaj zależność przepływu pracy CI: adapter- tests teraz wymaga check- and- lint\nDodaj konfigurację automatycznego połączenia",
+        "uk": "Виправлення питань репозиторій GitHub (E8903, E8912)\nMigrate automerge workflow to new iobroker-bot-orga дію\nДодати екосистему github-actions для налаштування\nДодайте залежність від CI: перехідники-тести тепер вимагають перевірки-і-лінт\nДодати налаштування автозапчастин",
+        "zh-cn": "修复 GitHub 仓库检查器问题(E8903, E8912)\n迁移依赖自动工作流程到新的 iobroster-bot-orga 动作\n添加 github- actions 生态系统到依赖配置\n添加 CI 工作流程依赖性: 适配器测试现在需要检查和显示\n添加自动合并配置"
+      },
       "0.1.4": {
         "en": "Add CI/CD workflows, tests, fix timer cleanup, remove redundant mocha dependency",
         "de": "CI/CD-Workflows und Tests hinzugefügt, Timer-Cleanup korrigiert, redundante mocha-Abhängigkeit entfernt",

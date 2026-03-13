@@ -140,8 +140,7 @@ Hosts with an unknown hostname are rejected at the TLS level – no fallback cer
 All certificates loaded at startup are printed to the log.
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.1.5 (2026-03-13)
 - Fix GitHub repository checker issues (E8903, E8912)
 - Migrate dependabot automerge workflow to new iobroker-bot-orga action
 - Add github-actions ecosystem to dependabot config
