@@ -1,6 +1,5 @@
 {
     "plugins": ["iobroker", "license", "manual-review"],
-    "languages": ["en", "de", "ru", "pt", "nl", "fr", "it", "es", "pl", "uk", "zh-cn"],
     "license": "MIT",
     "addPlaceholder": true,
     "exec": {
