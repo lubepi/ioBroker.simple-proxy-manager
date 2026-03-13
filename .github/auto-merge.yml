@@ -1,0 +1,5 @@
+# Configuration for the dependabot automerge action
+# See https://github.com/iobroker-bot-orga/action-automerge-dependabot
+
+# Automerge minor and patch updates
+target: minor

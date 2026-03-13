@@ -141,6 +141,13 @@ All certificates loaded at startup are printed to the log.
 
 ## Changelog
 
+### __WORK IN PROGRESS__
+- Fix GitHub repository checker issues (E8903, E8912)
+- Migrate dependabot automerge workflow to new iobroker-bot-orga action
+- Add github-actions ecosystem to dependabot config
+- Add CI workflow dependency: adapter-tests now requires check-and-lint
+- Add auto-merge configuration
+
 ### 0.1.4
 - Add CI/CD workflows (test-and-release) and adapter tests
 - Add dependabot auto-merge workflow

@@ -1,5 +1,9 @@
 {
     "plugins": ["iobroker", "license", "manual-review"],
     "languages": ["en", "de", "ru", "pt", "nl", "fr", "it", "es", "pl", "uk", "zh-cn"],
-    "license": "MIT"
+    "license": "MIT",
+    "addPlaceholder": true,
+    "exec": {
+        "before_check": ["npm run lint", "npm test"]
+    }
 }
