@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "simple-proxy-manager",
-    "version": "0.1.5",
+    "version": "0.1.6",
     "titleLang": {
       "en": "Simple Proxy Manager",
       "de": "Einfacher Proxy Manager",
@@ -73,6 +73,19 @@
       }
     ],
     "news": {
+      "0.1.6": {
+        "en": "Add rich README header with badges and logo\nUpdate release workflow documentation\nSwitch to NPM Trusted Publishing",
+        "de": "Rich README Header mit Badges und Logo hinzufügen\nRelease Workflow-Dokumentation aktualisieren\nAuf NPM Trusted Publishing umstellen",
+        "ru": "Добавьте богатый заголовок Readme с значками и логотипом\nДобавить документацию о рабочем процессе выпуска\nПереход на NPM Доверенное издательство",
+        "pt": "Adicionar cabeçalho README rico com crachás e logotipo\nAdicionar documentação do fluxo de trabalho de lançamento\nMudar para NPM Publicação Confiada",
+        "nl": "Rijke README-koptekst met badges en logo toevoegen\nRelease workflow documentatie toevoegen\nOverschakelen naar NPM Vertrouwde uitgeverij",
+        "fr": "Ajouter riche en-tête README avec badges et logo\nAjouter la documentation du flux de travail de sortie\nPasser à NPM Édition fiable",
+        "it": "Aggiungere ricchi intestazioni README con distintivi e logo\nAggiungere la documentazione del flusso di lavoro di rilascio\nPassare a NPM Pubblicazione fidata",
+        "es": "Añadir rico encabezado README con placas y logotipo\nAñada documentación de flujo de trabajo\nCambiar a NPM Trusted Publishing",
+        "pl": "Dodaj bogaty nagłówk README z odznakami i logo\nDodaj dokumentację przepływu pracy wydania\nPrzełącz na NPM Zaufane Wydawnictwo",
+        "uk": "Додати багату заголовок README з значками та логотипом\nДодати документацію про роботу\nПеремикач на NPM Довірені видання",
+        "zh-cn": "添加带徽章和标志的丰富的 README 标题\n添加发布工作流程文档\n切换到国家预防机制 受托出版"
+      },
       "0.1.5": {
         "en": "Fix GitHub repository checker issues (E8903, E8912)\nMigrate dependabot automerge workflow to new iobroker-bot-orga action\nAdd github-actions ecosystem to dependabot config\nAdd CI workflow dependency: adapter-tests now requires check-and-lint\nAdd auto-merge configuration",
         "de": "Fix GitHub Repository Checker Probleme (E8903, E8912)\nMigrieren Sie abhängigabot Automerge-Workflow zu neuen iobroker-bot-orga-Action\nFügen Sie github-actions Ökosystem zu Abhängigkeitabot config\nCI-Workflow-Abhängigkeit hinzufügen: Adapter-Tests benötigen jetzt Check-and-lint\nAutomerge-Konfiguration hinzufügen",

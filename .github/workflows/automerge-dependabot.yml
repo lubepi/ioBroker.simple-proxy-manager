@@ -15,4 +15,3 @@ jobs:
       - uses: iobroker-bot-orga/action-automerge-dependabot@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          target: minor
