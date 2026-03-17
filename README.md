@@ -34,14 +34,6 @@ Simple HTTPS/HTTP reverse proxy manager for ioBroker.
 - **ACME adapter** for automatic SSL certificates (optional – also usable without certificates)
 - The configured ports must be available (defaults: 80 for HTTP, 443 for HTTPS)
 
-## Installation
-
-Install the adapter via the ioBroker Admin UI:
-
-1. Open the **Adapters** page in ioBroker Admin
-2. Search for **simple-proxy-manager**
-3. Click **Install**
-
 ## Configuration
 
 ### Tab "General"
