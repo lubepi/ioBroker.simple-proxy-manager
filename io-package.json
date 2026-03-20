@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "simple-proxy-manager",
-    "version": "0.1.6",
+    "version": "0.1.7",
     "titleLang": {
       "en": "Simple Proxy Manager",
       "de": "Einfacher Proxy Manager",
@@ -73,6 +73,19 @@
       }
     ],
     "news": {
+      "0.1.7": {
+        "en": "Docs: remove generic installation section per S6014",
+        "de": "Docs: generische Installations-Abschnitt per S6014 entfernen",
+        "ru": "Документы: удалить общий раздел установки на S6014",
+        "pt": "Docs: remover seção de instalação genérica por S6014",
+        "nl": "Documenten: generieke installatie sectie verwijderen per S6014",
+        "fr": "Docs: supprimer la section d'installation générique par S6014",
+        "it": "Docs: rimuovere la sezione di installazione generica per S6014",
+        "es": "Docs: eliminar la sección de instalación genérica por S6014",
+        "pl": "Dokumenty: usunąć sekcję instalacji generycznej na S6014",
+        "uk": "Docs: видалити загальний розділ установки за S6014",
+        "zh-cn": "Docs: 每架S6014移除通用安装段"
+      },
       "0.1.6": {
         "en": "Add rich README header with badges and logo\nUpdate release workflow documentation\nSwitch to NPM Trusted Publishing",
         "de": "Rich README Header mit Badges und Logo hinzufügen\nRelease Workflow-Dokumentation aktualisieren\nAuf NPM Trusted Publishing umstellen",
@@ -150,19 +163,6 @@
         "pl": "Naprawiono awarię przy nieznanym hoście HTTPS, dodano i18n, zaktualizowano zależności",
         "uk": "Виправлено збій при невідомому HTTPS-хості, додано i18n, оновлено залежності",
         "zh-cn": "修复未知 HTTPS 主机崩溃问题，添加 i18n，更新依赖"
-      },
-      "0.1.0": {
-        "en": "Initial release",
-        "de": "Erstveröffentlichung",
-        "ru": "Первый выпуск",
-        "pt": "Lançamento inicial",
-        "nl": "Eerste uitgave",
-        "fr": "Version initiale",
-        "it": "Rilascio iniziale",
-        "es": "Versión inicial",
-        "pl": "Pierwsze wydanie",
-        "uk": "Перший випуск",
-        "zh-cn": "首次发布"
       }
     }
   },

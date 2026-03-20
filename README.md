@@ -143,7 +143,7 @@ Hosts with an unknown hostname are rejected at the TLS level – no fallback cer
 All certificates loaded at startup are printed to the log.
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 0.1.7 (2026-03-20)
 
 - Docs: remove generic installation section per S6014
 
