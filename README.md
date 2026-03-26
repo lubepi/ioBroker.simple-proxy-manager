@@ -143,6 +143,12 @@ Hosts with an unknown hostname are rejected at the TLS level – no fallback cer
 All certificates loaded at startup are printed to the log.
 
 ## Changelog
+### 0.1.8 (2026-03-26)
+- Opt in to Node.js 24 for GitHub Actions
+- Update GitHub Actions test matrix (Node.js 20, 22, 24)
+- Address reviewer suggestions (use `node:` prefix, specific state roles, interval limiting)
+- Fix linting errors
+
 ### 0.1.7 (2026-03-20)
 
 - Docs: remove generic installation section per S6014
