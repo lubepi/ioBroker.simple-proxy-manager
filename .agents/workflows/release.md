@@ -34,9 +34,17 @@ git log $(git describe --tags --abbrev=0)..HEAD --oneline
    ```
    *Hinweis: Fehler `E2004` (Version noch nicht auf NPM) und Warnung `W2002` (Versions-Mismatch) können ignoriert werden, da diese erst NACH dem Release verschwinden.*
 
-4. **Changelog-Einträge formulieren** – der Assistent schlägt saubere, präzise Changelog-Sätze vor, die du bestätigst oder anpasst.
+4. **Changelog-Einträge formulieren:**
+   Der Assistent schlägt saubere, präzise Changelog-Sätze vor, die du bestätigst oder anpasst.
 
-5. **Changelog in README.md eintragen** – unter dem neuen Versions-Header, bereit für den Release-Script.
+5. **Changelog in README.md eintragen:**
+   Der Assistent achtet darauf, dass diese unter einem `### **WORK IN PROGRESS**`-Platzhalter eingetragen werden. Falls dieser Platzhalter fehlt, wird er automatisch hinzugefügt.
+
+6. **Änderungen committen (WICHTIG):**
+   Bevor das Release-Script gestartet wird, muss der Assistent alle Änderungen (vor allem den neuen Changelog-Eintrag in der `README.md`) mit einem Commit sichern, da das Release-Script sonst abbricht:
+   ```bash
+   git add README.md && git commit -m "docs: add changelog for vX.Y.Z"
+   ```
 
 ---
 

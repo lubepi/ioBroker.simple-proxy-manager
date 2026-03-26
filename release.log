@@ -1,0 +1,206 @@
+
+> iobroker.simple-proxy-manager@0.1.7 release
+> release-script patch
+
+before_check:exec $ npm run lint
+before_check:exec 
+> iobroker.simple-proxy-manager@0.1.7 lint
+> eslint
+
+before_check:exec $ npm test
+before_check:exec 
+> iobroker.simple-proxy-manager@0.1.7 test
+> npm run test:package && npm run test:integration
+
+before_check:exec 
+> iobroker.simple-proxy-manager@0.1.7 test:package
+> mocha test/package --exit
+
+before_check:exec 
+before_check:exec 
+before_check:exec   Validate the package files
+before_check:exec     Ensure they are readable
+before_check:exec       package.json
+before_check:exec         ✔ exists
+before_check:exec         ✔ contains valid JSON
+before_check:exec         ✔ is an object
+before_check:exec       io-package.json
+before_check:exec         ✔ exists
+before_check:exec         ✔ contains valid JSON
+before_check:exec         ✔ is an object
+before_check:exec     Check contents of package.json
+before_check:exec       ✔ The property "name" exists
+before_check:exec       ✔ The property "version" exists
+before_check:exec       ✔ The property "description" exists
+before_check:exec       ✔ The property "author" exists
+before_check:exec       ✔ The property "license" exists
+before_check:exec       ✔ The property "repository" exists
+before_check:exec       ✔ The property "repository.type" exists
+before_check:exec       ✔ The package name is correct
+before_check:exec       ✔ property main is defined for non onlyWWW adapters
+before_check:exec       ✔ The repository type is "git"
+before_check:exec       ✔ npm is not listed as a dependency
+before_check:exec       ✔ iobroker.js-controller is not listed as a dependency
+before_check:exec     Check contents of io-package.json
+before_check:exec       ✔ The property "common.name" exists
+before_check:exec       ✔ The property "common.titleLang" exists
+before_check:exec       ✔ The property "common.version" exists
+before_check:exec       ✔ The property "common.news" exists
+before_check:exec       ✔ The property "common.desc" exists
+before_check:exec       ✔ The property "common.icon" exists
+before_check:exec       ✔ The property "common.extIcon" exists
+before_check:exec       ✔ The property "common.type" exists
+before_check:exec       ✔ The property "common.authors" exists
+before_check:exec       ✔ The property "native" exists
+before_check:exec       ✔ The title does not contain "adapter" or "iobroker"
+before_check:exec       ✔ titleLang is an object to support multiple languages
+before_check:exec       ✔ titleLang does not contain "adapter" or "iobroker"
+before_check:exec       ✔ The description is an object to support multiple languages
+before_check:exec       ✔ common.authors is an array that is not empty
+before_check:exec       ✔ common.news is an object that contains maximum 20 entries
+before_check:exec       ✔ if common.licenseInformation exists, it is an object with required properties
+before_check:exec       ✔ common.license should not exist together with common.licenseInformation
+before_check:exec       ✔ common.tier must be 1, 2 or 3
+before_check:exec       ✔ The adapter uses a supported admin UI
+before_check:exec     Compare contents of package.json and io-package.json
+before_check:exec       ✔ The name matches
+before_check:exec       ✔ The version matches
+before_check:exec       ✔ The license matches
+before_check:exec     Validate JSON files
+before_check:exec       Base directory JSON files
+before_check:exec         ✔ package.json contains valid JSON
+before_check:exec         ✔ io-package.json contains valid JSON
+before_check:exec       admin/*.json files
+before_check:exec         ✔ admin/jsonConfig.json contains valid JSON
+before_check:exec       admin/i18n/**/*.json files
+before_check:exec         ✔ admin/i18n/de.json contains valid JSON
+before_check:exec         ✔ admin/i18n/en.json contains valid JSON
+before_check:exec         ✔ admin/i18n/es.json contains valid JSON
+before_check:exec         ✔ admin/i18n/fr.json contains valid JSON
+before_check:exec         ✔ admin/i18n/it.json contains valid JSON
+before_check:exec         ✔ admin/i18n/nl.json contains valid JSON
+before_check:exec         ✔ admin/i18n/pl.json contains valid JSON
+before_check:exec         ✔ admin/i18n/pt.json contains valid JSON
+before_check:exec         ✔ admin/i18n/ru.json contains valid JSON
+before_check:exec         ✔ admin/i18n/uk.json contains valid JSON
+before_check:exec         ✔ admin/i18n/zh-cn.json contains valid JSON
+before_check:exec 
+before_check:exec   Check additional files
+before_check:exec     ✔ README.md exists
+before_check:exec     ✔ LICENSE exists or is present in the README.md
+before_check:exec 
+before_check:exec 
+before_check:exec   57 passing (15ms)
+before_check:exec 
+before_check:exec 
+> iobroker.simple-proxy-manager@0.1.7 test:integration
+> mocha test/integration --exit
+
+before_check:exec 
+before_check:exec Running tests in /tmp/test-iobroker.simple-proxy-manager
+
+before_check:exec 
+before_check:exec 
+before_check:exec   Adapter integration tests
+before_check:exec 
+removed 6 packages, and audited 311 packages in 1s
+before_check:exec 
+20 packages are looking for funding
+  run `npm fund` for details
+before_check:exec 
+4 vulnerabilities (2 moderate, 2 high)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+before_check:exec 
+up to date, audited 311 packages in 607ms
+
+before_check:exec 20 packages are looking for funding
+  run `npm fund` for details
+before_check:exec 
+4 vulnerabilities (2 moderate, 2 high)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+before_check:exec 
+added 6 packages, and audited 317 packages in 2s
+before_check:exec 
+20 packages are looking for funding
+  run `npm fund` for details
+before_check:exec 
+4 vulnerabilities (2 moderate, 2 high)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+before_check:exec Server Data File: /tmp/test-iobroker.simple-proxy-manager/iobroker-data/objects.jsonl
+before_check:exec Server  Redis inMem-objects listening on port 19001
+before_check:exec  Redis Objects: Use Redis connection: 127.0.0.1:19001
+before_check:exec  Objects client ready ... initialize now
+before_check:exec  Objects client initialize lua scripts
+before_check:exec  Objects connected to redis: 127.0.0.1:19001
+before_check:exec  Redis Objects: Use Redis connection: 127.0.0.1:19001
+before_check:exec  Objects client ready ... initialize now
+before_check:exec  Objects create System PubSub Client
+before_check:exec  Objects client initialize lua scripts
+before_check:exec  Objects connected to redis: 127.0.0.1:19001
+before_check:exec Server Data File: /tmp/test-iobroker.simple-proxy-manager/iobroker-data/states.jsonl
+before_check:exec Server  Redis inMem-states listening on port 19000
+before_check:exec  Redis States: Use Redis connection: 127.0.0.1:19000
+before_check:exec  States connected to redis: 127.0.0.1:19000
+ Redis States: Use Redis connection: 127.0.0.1:19000
+before_check:exec  States create System PubSub Client
+before_check:exec  States connected to redis: 127.0.0.1:19000
+before_check:exec Delete file simple-proxy-manager.admin/i18n/de.json
+before_check:exec Delete file simple-proxy-manager.admin/i18n/en.json
+before_check:exec Delete file simple-proxy-manager.admin/i18n/es.json
+before_check:exec Delete file simple-proxy-manager.admin/i18n/fr.json
+before_check:exec Delete file simple-proxy-manager.admin/i18n/it.json
+before_check:exec Delete file simple-proxy-manager.admin/i18n/nl.json
+before_check:exec Delete file simple-proxy-manager.admin/i18n/pl.json
+before_check:exec Delete file simple-proxy-manager.admin/i18n/pt.json
+before_check:exec Delete file simple-proxy-manager.admin/i18n/ru.json
+before_check:exec Delete file simple-proxy-manager.admin/i18n/uk.json
+before_check:exec Delete file simple-proxy-manager.admin/i18n/zh-cn.json
+before_check:exec Delete file simple-proxy-manager.admin/jsonConfig.json
+before_check:exec Delete file simple-proxy-manager.admin/simple-proxy-manager.png
+before_check:exec     Adapter startup
+before_check:exec Server Data File: /tmp/test-iobroker.simple-proxy-manager/iobroker-data/objects.jsonl
+before_check:exec Server  Redis inMem-objects listening on port 19001
+before_check:exec  Redis Objects: Use Redis connection: 127.0.0.1:19001
+before_check:exec  Objects client ready ... initialize now
+before_check:exec  Objects client initialize lua scripts
+before_check:exec  Objects connected to redis: 127.0.0.1:19001
+before_check:exec  Redis Objects: Use Redis connection: 127.0.0.1:19001
+before_check:exec  Objects client ready ... initialize now
+before_check:exec  Objects create System PubSub Client
+before_check:exec  Objects client initialize lua scripts
+before_check:exec  Objects connected to redis: 127.0.0.1:19001
+before_check:exec Server Data File: /tmp/test-iobroker.simple-proxy-manager/iobroker-data/states.jsonl
+before_check:exec Server  Redis inMem-states listening on port 19000
+before_check:exec  Redis States: Use Redis connection: 127.0.0.1:19000
+before_check:exec  States connected to redis: 127.0.0.1:19000
+before_check:exec  Redis States: Use Redis connection: 127.0.0.1:19000
+before_check:exec  States create System PubSub Client
+before_check:exec  States connected to redis: 127.0.0.1:19000
+before_check:exec 2026-03-26 15:36:09.191  - info: simple-proxy-manager.0 (36463) starting. Version 0.1.7 in /tmp/test-iobroker.simple-proxy-manager/node_modules/iobroker.simple-proxy-manager, node: v24.11.1, js-controller: 7.1.1-alpha.0-20260127-997e40b73
+before_check:exec 2026-03-26 15:36:09.200  - warn: simple-proxy-manager.0 (36463) No backends configured – adapter waiting for configuration
+before_check:exec The adapter started successfully.
+before_check:exec       ✔ The adapter starts (5325ms)
+before_check:exec 2026-03-26 15:36:14.206  - info: simple-proxy-manager.0 (36463) Got terminate signal TERMINATE_YOURSELF
+before_check:exec 2026-03-26 15:36:14.206  - info: simple-proxy-manager.0 (36463) Reverse proxy stopping...
+before_check:exec 2026-03-26 15:36:14.207  - info: simple-proxy-manager.0 (36463) terminating
+before_check:exec 2026-03-26 15:36:14.207  - info: simple-proxy-manager.0 (36463) Terminated (ADAPTER_REQUESTED_TERMINATION): Without reason
+before_check:exec 
+before_check:exec 
+  1 passing (25s)
+
+
+check:git [ERR] The local branch has uncommitted changes! Add them to a separate commit first or add the "--all" option to include them in the release commit.
+
+Release did not complete. There was 1 error!
