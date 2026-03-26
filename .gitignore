@@ -4,3 +4,4 @@ tmp/
 *.tgz
 iob_npm.done
 .commitinfo
+release.log
