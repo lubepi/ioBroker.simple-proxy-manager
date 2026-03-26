@@ -1,11 +1,11 @@
 "use strict";
 
 const utils = require("@iobroker/adapter-core");
-const https = require("https");
-const http = require("http");
+const https = require("node:https");
+const http = require("node:http");
 const httpProxy = require("http-proxy");
-const tls = require("tls");
-const crypto = require("crypto");
+const tls = require("node:tls");
+const crypto = require("node:crypto");
 
 class SimpleProxyManager extends utils.Adapter {
   constructor(options) {
@@ -313,7 +313,7 @@ class SimpleProxyManager extends utils.Adapter {
           );
           await this.setStateAsync(
             `certificates.${collName}.expires`,
-            expiryDate.toLocaleDateString("en-GB"),
+            expiryDate.toISOString(),
             true,
           );
           await this.setStateAsync(
@@ -324,7 +324,7 @@ class SimpleProxyManager extends utils.Adapter {
           this.log.info(
             `Certificate "${
               collName
-            }": valid until ${expiryDate.toLocaleDateString("en-GB")} (${
+            }": valid until ${expiryDate.toISOString()} (${
               daysLeft
             } days)`,
           );
@@ -424,7 +424,7 @@ class SimpleProxyManager extends utils.Adapter {
           );
           await this.setStateAsync(
             `certificates.${collName}.expires`,
-            expiryDate.toLocaleDateString("en-GB"),
+            expiryDate.toISOString(),
             true,
           );
           await this.setStateAsync(
@@ -524,7 +524,7 @@ class SimpleProxyManager extends utils.Adapter {
     await this.setObjectNotExistsAsync(`certificates.${collName}.expires`, {
       type: "state",
       common: {
-        role: "text",
+        role: "date",
         name: "Expiry date",
         type: "string",
         read: true,
@@ -1052,7 +1052,11 @@ class SimpleProxyManager extends utils.Adapter {
     }
 
     // Certificate auto-reload
-    const checkIntervalMs = (config.certCheckHours || 1) * 3600000;
+    let checkIntervalMs = Math.max(1, config.certCheckHours || 1) * 3600000;
+    if (checkIntervalMs > 2147483647) {
+      checkIntervalMs = 2147483647;
+      this.log.warn("Certificate check interval too large – limiting to 24.8 days");
+    }
     this.certCheckInterval = this.setInterval(() => {
       this.checkCertificateRenewal();
     }, checkIntervalMs);
