@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "simple-proxy-manager",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "titleLang": {
       "en": "Simple Proxy Manager",
       "de": "Einfacher Proxy Manager",
@@ -73,6 +73,19 @@
       }
     ],
     "news": {
+      "0.1.8": {
+        "en": "Opt in to Node.js 24 for GitHub Actions\nUpdate GitHub Actions test matrix (Node.js 20, 22, 24)\nAddress reviewer suggestions (use `node:` prefix, specific state roles, interval limiting)\nFix linting errors",
+        "de": "Eintritt in Node.js 24 für GitHub Aktionen\nGitHub Actions Testmatrix aktualisieren (Node.js 20, 22, 24)\nAdressenreviewer-Vorschläge (verwenden Sie `node:` Präfix, bestimmte Zustandsrollen, Intervallbegrenzung)\nFehler behoben",
+        "ru": "Выберите Node.js 24 для действий GitHub\nОбновление тестовой матрицы GitHub Actions (Node.js 20, 22, 24)\nРекомендации рецензента адреса (использовать префикс «узел:», конкретные государственные роли, ограничение интервала)\nИсправьте ошибки подкладки",
+        "pt": "Opte por Node.js 24 para ações GitHub\nAtualizar a matriz de teste GitHub Actions (Node.js 20, 22, 24)\nSugestões do revisor de endereços (use o prefixo `node:`, funções específicas do estado, limitação do intervalo)\nCorrigir erros de linting",
+        "nl": "Klik op Node.js 24 voor GitHub-acties\nUpdate GitHub Acties testmatrix (Node.js 20, 22, 24)\nAddress reviewer suggestions (gebruik \"node\": \"prefix,\" specifieke status rollen, interval limiting)\nLintfouten herstellen",
+        "fr": "Optez pour Node.js 24 pour les actions GitHub\nMettre à jour la matrice de test des actions GitHub (Node.js 20, 22, 24)\nAdresser les suggestions de l'examinateur (utiliser `node:` préfixe, rôles d'état spécifiques, limite d'intervalle)\nCorrection des erreurs de doublage",
+        "it": "Optare a Node.js 24 per GitHub Azioni\nAggiornare GitHub Azioni test matrix (Node.js 20, 22, 24)\nSuggerimenti del recensore dell'indirizzo (usare `node:` prefisso, ruoli specifici dello stato, limitazione dell'intervallo)\nCorreggere errori di lining",
+        "es": "Opt in to Node.js 24 for GitHub Actions\nActualizar la matriz de prueba GitHub Actions (Node.js 20, 22, 24)\nDirecciones sugerencias del revisor (uso `nodo:` prefijo, funciones específicas del estado, limitación de intervalos)\nCorregir errores de forro",
+        "pl": "Opt in to Node.js 24 for GitHub Actions\nAktualizuj macierz testową GitHub Actions (Node.js 20, 22, 24)\nPropozycje recenzenta adresów (użyj 'node:', prefiks, określone role stanu, ograniczenie odstępu czasu)\nNaprawiono błędy lintowania",
+        "uk": "Opt в Node.js 24 для GitHub Дії\nUpdate GitHub Дії тестової матриці (Node.js 20, 22, 24)\nПропозиції рецензента (з використанням `node:` префікс, специфічні державні ролі, обмеження інтервалів)\nВиправлення помилок linting",
+        "zh-cn": "为 GitHub 动作选择 24 号节点\n更新 GitHub 动作测试矩阵(Node.js 20, 22, 24)\n地址审查员建议(使用“节点:”前缀、具体国家角色、间隔限制)\n修正嵌入错误"
+      },
       "0.1.7": {
         "en": "Docs: remove generic installation section per S6014",
         "de": "Docs: generische Installations-Abschnitt per S6014 entfernen",
@@ -150,19 +163,6 @@
         "pl": "Zaktualizowano zależności, dodano responsywny układ, Changelog/Licencja w README",
         "uk": "Оновлено залежності, додано адаптивний макет, Changelog/Ліцензія в README",
         "zh-cn": "更新依赖，添加响应式布局，在 README 中添加更新日志/许可证"
-      },
-      "0.1.1": {
-        "en": "Fix crash on unknown HTTPS host, add i18n, update dependencies",
-        "de": "Absturz bei unbekanntem HTTPS-Host behoben, i18n hinzugefügt, Abhängigkeiten aktualisiert",
-        "ru": "Исправлен сбой при неизвестном HTTPS-хосте, добавлена i18n, обновлены зависимости",
-        "pt": "Corrigido erro em host HTTPS desconhecido, adicionado i18n, dependências atualizadas",
-        "nl": "Crash bij onbekende HTTPS-host opgelost, i18n toegevoegd, afhankelijkheden bijgewerkt",
-        "fr": "Correction du crash sur hôte HTTPS inconnu, ajout i18n, dépendances mises à jour",
-        "it": "Corretto crash su host HTTPS sconosciuto, aggiunto i18n, dipendenze aggiornate",
-        "es": "Corregido error en host HTTPS desconocido, añadido i18n, dependencias actualizadas",
-        "pl": "Naprawiono awarię przy nieznanym hoście HTTPS, dodano i18n, zaktualizowano zależności",
-        "uk": "Виправлено збій при невідомому HTTPS-хості, додано i18n, оновлено залежності",
-        "zh-cn": "修复未知 HTTPS 主机崩溃问题，添加 i18n，更新依赖"
       }
     }
   },
