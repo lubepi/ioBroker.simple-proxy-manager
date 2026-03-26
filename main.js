@@ -324,9 +324,7 @@ class SimpleProxyManager extends utils.Adapter {
           this.log.info(
             `Certificate "${
               collName
-            }": valid until ${expiryDate.toISOString()} (${
-              daysLeft
-            } days)`,
+            }": valid until ${expiryDate.toISOString()} (${daysLeft} days)`,
           );
           if (
             this.config.certWarnDays > 0 &&
@@ -1055,7 +1053,9 @@ class SimpleProxyManager extends utils.Adapter {
     let checkIntervalMs = Math.max(1, config.certCheckHours || 1) * 3600000;
     if (checkIntervalMs > 2147483647) {
       checkIntervalMs = 2147483647;
-      this.log.warn("Certificate check interval too large – limiting to 24.8 days");
+      this.log.warn(
+        "Certificate check interval too large – limiting to 24.8 days",
+      );
     }
     this.certCheckInterval = this.setInterval(() => {
       this.checkCertificateRenewal();
