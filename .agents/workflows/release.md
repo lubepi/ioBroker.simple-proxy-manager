@@ -38,12 +38,13 @@ git log $(git describe --tags --abbrev=0)..HEAD --oneline
    Der Assistent schlägt saubere, präzise Changelog-Sätze vor, die du bestätigst oder anpasst.
 
 5. **Changelog in README.md eintragen:**
-   Der Assistent achtet darauf, dass diese unter einem `### **WORK IN PROGRESS**`-Platzhalter eingetragen werden. Falls dieser Platzhalter fehlt, wird er automatisch hinzugefügt.
+   Der Assistent trägt die Änderungen **direkt unter** dem Platzhalter `### **WORK IN PROGRESS**` ein. 
+   **WICHTIG:** Erstelle *keinen* manuellen Header mit der neuen Versionsnummer (z.B. `### 0.1.8`), da das Release-Script diesen Header selbst generiert und sonst mit einem Fehler ("Changelog is empty") abbricht.
 
 6. **Änderungen committen (WICHTIG):**
-   Bevor das Release-Script gestartet wird, muss der Assistent alle Änderungen (vor allem den neuen Changelog-Eintrag in der `README.md`) mit einem Commit sichern, da das Release-Script sonst abbricht:
+   Bevor das Release-Script gestartet wird, muss der Assistent **alle** ausstehenden Änderungen (README.md, Workflows, .gitignore, etc.) committen und pushen. Das Release-Script prüft auf einen sauberen Git-Status und bricht bei jeder kleinsten Änderung ab.
    ```bash
-   git add README.md && git commit -m "docs: add changelog for vX.Y.Z"
+   git add . && git commit -m "chore: preparations for vX.Y.Z" && git push
    ```
 
 ---
