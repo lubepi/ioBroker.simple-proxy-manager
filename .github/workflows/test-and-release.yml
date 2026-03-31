@@ -13,9 +13,6 @@ concurrency:
   group: ${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   # Performs quick checks before the expensive test runs
   check-and-lint:
@@ -26,7 +23,7 @@ jobs:
     steps:
       - uses: ioBroker/testing-action-check@v1
         with:
-          node-version: '22.x'
+          node-version: "22.x"
           lint: true
 
   # Runs adapter tests on all supported node versions and OSes
@@ -64,5 +61,5 @@ jobs:
     steps:
       - uses: ioBroker/testing-action-deploy@v1
         with:
-          node-version: '22.x'
+          node-version: "22.x"
           github-token: ${{ secrets.GITHUB_TOKEN }}
