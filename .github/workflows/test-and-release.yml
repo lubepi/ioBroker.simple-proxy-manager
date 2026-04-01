@@ -21,9 +21,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: ioBroker/testing-action-check@v1
+      - name: Check and Lint
+        uses: ioBroker/testing-action-check@v1
         with:
-          node-version: "22.x"
+          node-version: '22.x'
           lint: true
 
   # Runs adapter tests on all supported node versions and OSes
@@ -38,7 +39,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - uses: ioBroker/testing-action-adapter@v1
+      - name: Run adapter tests
+        uses: ioBroker/testing-action-adapter@v1
         with:
           node-version: ${{ matrix.node-version }}
           os: ${{ matrix.os }}
@@ -59,7 +61,8 @@ jobs:
       contents: write
 
     steps:
-      - uses: ioBroker/testing-action-deploy@v1
+      - name: Deploy to NPM
+        uses: ioBroker/testing-action-deploy@v1
         with:
-          node-version: "22.x"
+          node-version: '22.x'
           github-token: ${{ secrets.GITHUB_TOKEN }}
