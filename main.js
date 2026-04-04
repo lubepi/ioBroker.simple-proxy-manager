@@ -245,7 +245,7 @@ class SimpleProxyManager extends utils.Adapter {
 
       // Log available ACME/named collections from system.certificates
       const availableCollections = Object.keys(obj.native.collections || {});
-      this.log.info(
+      this.log.debug(
         `Available certificate collections: ${availableCollections.join(", ")}`,
       );
 
@@ -269,7 +269,7 @@ class SimpleProxyManager extends utils.Adapter {
           await this.delObjectAsync(`certificates.${certName}.expires`);
           await this.delObjectAsync(`certificates.${certName}.daysLeft`);
           await this.delObjectAsync(`certificates.${certName}`);
-          this.log.info(`Removed stale certificate states for "${certName}"`);
+          this.log.debug(`Removed stale certificate states for "${certName}"`);
         }
       }
 
@@ -321,7 +321,7 @@ class SimpleProxyManager extends utils.Adapter {
             daysLeft,
             true,
           );
-          this.log.info(
+          this.log.debug(
             `Certificate "${
               collName
             }": valid until ${expiryDate.toISOString()} (${daysLeft} days)`,
@@ -345,7 +345,7 @@ class SimpleProxyManager extends utils.Adapter {
             0,
             true,
           );
-          this.log.info(
+          this.log.debug(
             `Certificate "${collName}" loaded (expiry date unknown)`,
           );
         }
@@ -504,6 +504,58 @@ class SimpleProxyManager extends utils.Adapter {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Builds a robust proxy error text. Some socket errors have an empty
+   * message, so we also include code/system fields as fallback.
+   *
+   * @param err - Error emitted by http-proxy
+   */
+  static formatProxyError(err) {
+    const details = [];
+    const message =
+      err && typeof err.message === "string" ? err.message.trim() : "";
+
+    if (message) {
+      details.push(message);
+    }
+
+    if (err && typeof err === "object") {
+      if (err.code) {
+        details.push(`code=${err.code}`);
+      }
+      if (err.syscall) {
+        details.push(`syscall=${err.syscall}`);
+      }
+      if (err.address) {
+        details.push(`address=${err.address}`);
+      }
+      if (err.port) {
+        details.push(`port=${err.port}`);
+      }
+    }
+
+    return details.length > 0 ? details.join(", ") : "unknown error";
+  }
+
+  /**
+   * Classifies common backend connection interruptions that are expected
+   * during backend restarts and should not be treated as hard adapter errors.
+   *
+   * @param err - Error emitted by http-proxy
+   */
+  static isTransientBackendError(err) {
+    const code = err && err.code;
+    return (
+      code === "ECONNREFUSED" ||
+      code === "ECONNRESET" ||
+      code === "EPIPE" ||
+      code === "ETIMEDOUT" ||
+      code === "EHOSTUNREACH" ||
+      code === "ENOTFOUND" ||
+      code === "EAI_AGAIN"
+    );
   }
 
   /**
@@ -755,7 +807,7 @@ class SimpleProxyManager extends utils.Adapter {
     const backend = this.backends[host];
 
     if (this.config.logRequests) {
-      this.log.info(`${clientIP} -> HTTPS ${host}${req.url}`);
+      this.log.debug(`${clientIP} -> HTTPS ${host}${req.url}`);
     }
 
     // Unknown host (should not happen – SNICallback rejects unknown hosts)
@@ -826,7 +878,7 @@ class SimpleProxyManager extends utils.Adapter {
     const backend = this.backends[host];
 
     if (this.config.logRequests) {
-      this.log.info(`${clientIP} -> HTTP ${host}${req.url}`);
+      this.log.debug(`${clientIP} -> HTTP ${host}${req.url}`);
     }
 
     // Unknown host
@@ -883,7 +935,9 @@ class SimpleProxyManager extends utils.Adapter {
     const isHttps = req.socket.encrypted;
 
     if (this.config.logRequests) {
-      this.log.info(`${clientIP} -> WS${isHttps ? "S" : ""} ${host}${req.url}`);
+      this.log.debug(
+        `${clientIP} -> WS${isHttps ? "S" : ""} ${host}${req.url}`,
+      );
     }
 
     if (!backend) {
@@ -931,7 +985,23 @@ class SimpleProxyManager extends utils.Adapter {
 
     // Error handling for proxy (res can be a socket during WebSocket upgrades)
     this.proxy.on("error", (err, req, res) => {
-      this.log.error(`Proxy error: ${err.message}`);
+      const host = ((req && req.headers && req.headers.host) || "")
+        .split(":")[0]
+        .toLowerCase();
+      const backend = host ? this.backends[host] : null;
+      const target = (backend && backend.target) || "unknown target";
+      const method = (req && req.method) || "?";
+      const url = (req && req.url) || "";
+      const errorText = SimpleProxyManager.formatProxyError(err);
+      const logLine = `Proxy error: ${method} ${host || "unknown-host"}${url} -> ${target} (${errorText})`;
+
+      if (SimpleProxyManager.isTransientBackendError(err)) {
+        // Expected during backend restarts: keep default logs quiet.
+        this.log.debug(logLine);
+      } else {
+        this.log.error(logLine);
+      }
+
       if (res && typeof res.writeHead === "function" && !res.headersSent) {
         const headers = { "Content-Type": "text/html; charset=utf-8" };
         if (this.hstsHeader) {
@@ -1036,7 +1106,7 @@ class SimpleProxyManager extends utils.Adapter {
     });
 
     // Log backend overview
-    this.log.info("Configured backends:");
+    this.log.debug("Configured backends:");
     for (const [host, cfg] of Object.entries(this.backends)) {
       const proto = cfg.certificate ? "HTTPS" : "HTTP";
       const certInfo = cfg.certificate ? ` [cert: ${cfg.certificate}]` : "";
@@ -1044,7 +1114,7 @@ class SimpleProxyManager extends utils.Adapter {
         cfg.allowedNetworks.length > 0
           ? ` (networks: ${cfg.allowedNetworks.join(", ")})`
           : " (all IPs)";
-      this.log.info(
+      this.log.debug(
         `  ${host} -> ${cfg.target} [${proto}]${certInfo}${netInfo}`,
       );
     }
@@ -1061,7 +1131,7 @@ class SimpleProxyManager extends utils.Adapter {
       this.checkCertificateRenewal();
     }, checkIntervalMs);
 
-    this.log.info(
+    this.log.debug(
       `Certificate check interval: every ${config.certCheckHours || 1} hour(s)`,
     );
   }

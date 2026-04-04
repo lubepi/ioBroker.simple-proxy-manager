@@ -47,8 +47,8 @@ Simple HTTPS/HTTP reverse proxy manager for ioBroker.
 | HSTS max-age        | 31536000 | HSTS validity duration in seconds (1 year)                                                           |
 | Check interval      | 1        | How often certificates are checked (hours)                                                           |
 | Expiry warning      | 0        | Warn X days before expiry (0 = disabled)                                                             |
-| Log security events | ✗        | Log denied access (IP filtering, WebSocket)                                                          |
-| Log requests        | ✗        | Log every incoming request (IP, host, URL)                                                           |
+| Log security events | ✗        | Log denied access (IP filtering, WebSocket) as warning entries                                       |
+| Log requests        | ✗        | Log every incoming request (IP, host, URL) as debug entries                                          |
 
 ### Tab "Backends"
 
@@ -143,6 +143,10 @@ Hosts with an unknown hostname are rejected at the TLS level – no fallback cer
 All certificates loaded at startup are printed to the log.
 
 ## Changelog
+### **WORK IN PROGRESS**
+
+- Optimize logging behavior: request logs now use debug level, transient backend restart errors are logged as debug with details, and startup logs are less noisy
+
 ### 0.1.8 (2026-03-26)
 - Opt in to Node.js 24 for GitHub Actions
 - Update GitHub Actions test matrix (Node.js 20, 22, 24)
