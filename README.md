@@ -150,7 +150,6 @@ Certificate loading details are available in the debug log.
 - Improve `info.connection` state handling: state is now true only when both HTTP and HTTPS listeners are active
 
 ### 0.1.8 (2026-03-26)
-- Opt in to Node.js 24 for GitHub Actions
 - Update GitHub Actions test matrix (Node.js 20, 22, 24)
 - Address reviewer suggestions (use `node:` prefix, specific state roles, interval limiting)
 - Fix linting errors
