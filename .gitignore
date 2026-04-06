@@ -5,3 +5,4 @@ tmp/
 iob_npm.done
 .commitinfo
 release.log
+.agents/

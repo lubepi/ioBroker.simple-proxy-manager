@@ -140,12 +140,14 @@ Both servers run **in parallel**. Each backend can have its own certificate sour
 
 Hosts with an unknown hostname are rejected at the TLS level – no fallback certificate is used.
 
-All certificates loaded at startup are printed to the log.
+Certificate loading details are available in the debug log.
 
 ## Changelog
 ### **WORK IN PROGRESS**
 
 - Optimize logging behavior: request logs now use debug level, transient backend restart errors are logged as debug with details, and startup logs are less noisy
+- Harden certificate handling: hosts with configured but unavailable certificates now fail closed for HTTPS/WSS instead of falling back silently
+- Improve `info.connection` state handling: state is now true only when both HTTP and HTTPS listeners are active
 
 ### 0.1.8 (2026-03-26)
 - Opt in to Node.js 24 for GitHub Actions

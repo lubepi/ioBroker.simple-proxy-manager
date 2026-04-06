@@ -23,6 +23,9 @@ class SimpleProxyManager extends utils.Adapter {
     this.certCheckInterval = null;
     this.certContexts = {}; // hostname -> tls.SecureContext
     this.certHashes = {}; // collectionName -> cert string (change detection)
+    this.invalidCertHosts = new Set(); // hostnames with configured but unavailable certificate
+    this.httpsListening = false;
+    this.httpListening = false;
     this.backends = {};
     this.hstsHeader = null;
   }
@@ -274,16 +277,25 @@ class SimpleProxyManager extends utils.Adapter {
       }
 
       let defaultSslOptions = null;
+      this.invalidCertHosts.clear();
 
       // Resolve each collection and create SecureContexts
       for (const collName of usedCollections) {
         const resolved = this.resolveCertCollection(collName, obj);
         if (!resolved) {
+          const affectedHosts = this.markInvalidCertificateHosts(collName);
           this.log.error(
             `Certificate collection "${collName}" not found or incomplete`,
           );
+          if (affectedHosts.length > 0) {
+            this.log.error(
+              `HTTPS disabled for host(s): ${affectedHosts.join(", ")}`,
+            );
+          }
           continue;
         }
+
+        this.clearInvalidCertificateHosts(collName);
 
         // Cache cert content for change detection
         this.certHashes[collName] = resolved.cert;
@@ -394,7 +406,20 @@ class SimpleProxyManager extends utils.Adapter {
       for (const collName of usedCertNames) {
         const resolved = this.resolveCertCollection(collName, obj);
         if (!resolved) {
+          const affectedHosts = this.markInvalidCertificateHosts(collName);
+          if (affectedHosts.length > 0) {
+            this.log.warn(
+              `Certificate collection "${collName}" is unavailable – HTTPS disabled for: ${affectedHosts.join(", ")}`,
+            );
+          }
           continue;
+        }
+
+        const recoveredHosts = this.clearInvalidCertificateHosts(collName);
+        if (recoveredHosts.length > 0) {
+          this.log.info(
+            `Certificate collection "${collName}" restored – HTTPS re-enabled for: ${recoveredHosts.join(", ")}`,
+          );
         }
 
         // Check whether cert content has changed
@@ -504,6 +529,69 @@ class SimpleProxyManager extends utils.Adapter {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Marks all hosts that use a missing/incomplete certificate collection.
+   * Marked hosts are prevented from HTTPS serving until cert data is valid again.
+   *
+   * @param collectionName - Certificate collection name
+   */
+  markInvalidCertificateHosts(collectionName) {
+    const newlyMarked = [];
+    for (const [hostname, backend] of Object.entries(this.backends)) {
+      if (backend.certificate === collectionName) {
+        delete this.certContexts[hostname];
+        if (!this.invalidCertHosts.has(hostname)) {
+          this.invalidCertHosts.add(hostname);
+          newlyMarked.push(hostname);
+        }
+      }
+    }
+    return newlyMarked;
+  }
+
+  /**
+   * Clears the invalid marker for all hosts using a certificate collection.
+   *
+   * @param collectionName - Certificate collection name
+   */
+  clearInvalidCertificateHosts(collectionName) {
+    const recoveredHosts = [];
+    for (const [hostname, backend] of Object.entries(this.backends)) {
+      if (
+        backend.certificate === collectionName &&
+        this.invalidCertHosts.has(hostname)
+      ) {
+        this.invalidCertHosts.delete(hostname);
+        recoveredHosts.push(hostname);
+      }
+    }
+    return recoveredHosts;
+  }
+
+  /**
+   * Checks if a host has a usable HTTPS certificate context.
+   *
+   * @param hostname - Backend hostname
+   */
+  hasReadyCertificateForHost(hostname) {
+    return !!(
+      hostname &&
+      this.certContexts[hostname] &&
+      !this.invalidCertHosts.has(hostname)
+    );
+  }
+
+  /**
+   * The adapter is considered connected only when both listeners are active.
+   */
+  updateConnectionState() {
+    this.setState(
+      "info.connection",
+      this.httpsListening && this.httpListening,
+      true,
+    );
   }
 
   /**
@@ -826,6 +914,13 @@ class SimpleProxyManager extends utils.Adapter {
       return;
     }
 
+    // Host requires HTTPS certificate, but no valid context is available.
+    if (!this.hasReadyCertificateForHost(host)) {
+      res.writeHead(503, { "Content-Type": "text/html; charset=utf-8" });
+      res.end("<h1>503 Service Unavailable</h1>");
+      return;
+    }
+
     // IP filtering
     if (!this.isAllowedIP(clientIP, backend)) {
       if (this.config.logSecurity) {
@@ -955,6 +1050,15 @@ class SimpleProxyManager extends utils.Adapter {
       return;
     }
 
+    if (
+      isHttps &&
+      backend.certificate &&
+      !this.hasReadyCertificateForHost(host)
+    ) {
+      socket.destroy();
+      return;
+    }
+
     // IP filtering for WebSockets as well
     if (!this.isAllowedIP(clientIP, backend)) {
       if (this.config.logSecurity) {
@@ -974,6 +1078,8 @@ class SimpleProxyManager extends utils.Adapter {
 
   startProxy(sslOptions) {
     const config = this.config;
+    this.httpsListening = false;
+    this.httpListening = false;
 
     // Create proxy server
     this.proxy = httpProxy.createProxyServer({
@@ -1032,12 +1138,16 @@ class SimpleProxyManager extends utils.Adapter {
         SNICallback: (servername, cb) => {
           const name = (servername || "").toLowerCase();
           const ctx = this.certContexts[name];
+          const backend = this.backends[name];
           if (ctx) {
             // Known host with its own certificate
             cb(null, ctx);
-          } else if (this.backends[name]) {
+          } else if (backend && !backend.certificate) {
             // Backend without own certificate → default context for HTTP redirect
             cb(null, null);
+          } else if (backend && backend.certificate) {
+            // Host is configured for HTTPS but the certificate is unavailable.
+            cb(new Error("Configured certificate unavailable"));
           } else {
             // Unknown hostname → reject TLS handshake
             this.log.debug(
@@ -1061,7 +1171,8 @@ class SimpleProxyManager extends utils.Adapter {
       this.log.info(
         `HTTPS reverse proxy running on port ${httpsPort} (IPv4 + IPv6)`,
       );
-      this.setState("info.connection", true, true);
+      this.httpsListening = true;
+      this.updateConnectionState();
     });
 
     this.httpsServer.on("error", (err) => {
@@ -1075,7 +1186,13 @@ class SimpleProxyManager extends utils.Adapter {
           } – elevated privileges required for ports < 1024`,
         );
       }
-      this.setState("info.connection", false, true);
+      this.httpsListening = false;
+      this.updateConnectionState();
+    });
+
+    this.httpsServer.on("close", () => {
+      this.httpsListening = false;
+      this.updateConnectionState();
     });
 
     // ---- HTTP server (always on) ----
@@ -1090,6 +1207,8 @@ class SimpleProxyManager extends utils.Adapter {
 
     this.httpServer.listen(httpPort, "::", () => {
       this.log.info(`HTTP server running on port ${httpPort} (IPv4 + IPv6)`);
+      this.httpListening = true;
+      this.updateConnectionState();
     });
 
     this.httpServer.on("error", (err) => {
@@ -1103,6 +1222,13 @@ class SimpleProxyManager extends utils.Adapter {
           } – elevated privileges required for ports < 1024`,
         );
       }
+      this.httpListening = false;
+      this.updateConnectionState();
+    });
+
+    this.httpServer.on("close", () => {
+      this.httpListening = false;
+      this.updateConnectionState();
     });
 
     // Log backend overview
@@ -1216,7 +1342,9 @@ class SimpleProxyManager extends utils.Adapter {
         this.proxy.close();
       }
 
-      this.setState("info.connection", false, true);
+      this.httpsListening = false;
+      this.httpListening = false;
+      this.updateConnectionState();
     } catch {
       // Ignore cleanup errors
     }
