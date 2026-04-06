@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "simple-proxy-manager",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "titleLang": {
       "en": "Simple Proxy Manager",
       "de": "Einfacher Proxy Manager",
@@ -73,6 +73,19 @@
       }
     ],
     "news": {
+      "0.1.9": {
+        "en": "Optimize logging behavior: request logs now use debug level, transient backend restart errors are logged as debug with details, and startup logs are less noisy\nHarden certificate handling: hosts with configured but unavailable certificates now fail closed for HTTPS/WSS instead of falling back silently\nImprove `info.connection` state handling: state is now true only when both HTTP and HTTPS listeners are active",
+        "de": "Optimieren Sie Protokollverhalten: Anfragen Protokolle verwenden jetzt Debug-Level, transiente Backend-Neustartfehler werden als Debug mit Details angemeldet, und Startprotokolle sind weniger laut\nHarden-Zertifikatshandling: Hosts mit konfigurierten, aber nicht verfügbaren Zertifikaten sind jetzt nicht für HTTPS/WSS geschlossen, anstatt still zu fallen\nVerbessern Sie `info.connection` Zustandsbehandlung: Zustand ist jetzt nur wahr, wenn sowohl HTTP- als auch HTTPS-Zuhörer aktiv sind",
+        "ru": "Оптимизируйте поведение при регистрации: журналы запросов теперь используют уровень отладки, временные ошибки перезапуска бэкэнда регистрируются как отладка с деталями, а журналы запуска менее шумные\nУкрепление обработки сертификатов: хосты с настроенными, но недоступными сертификатами теперь не закрываются для HTTPS / WSS вместо того, чтобы молча отступать\nУлучшение обработки состояния info.connection: состояние теперь верно только тогда, когда активны как HTTP, так и HTTPS-слушатели",
+        "pt": "Otimize o comportamento de registro: os registros de solicitação agora usam o nível de depuração, os erros de reinício transitórios são registrados como depuração com detalhes e os registros de inicialização são menos barulhentos\nEndureça o tratamento do certificado: as máquinas com certificados configurados mas não disponíveis agora falham ao fechar para HTTPS/WSS em vez de recuar silenciosamente\nMelhore o tratamento de estado 'info.connection': o estado agora é verdadeiro apenas quando os ouvintes HTTP e HTTPS estão ativos",
+        "nl": "Loggedrag optimaliseren: logs aanvragen maakt nu gebruik van debugniveau, tijdelijke backend herstartfouten worden geregistreerd als debug met details, en opstartlogs zijn minder luidruchtig\nGeharde certificaatafhandeling: hosts met geconfigureerde maar niet beschikbare certificaten zijn nu niet gesloten voor HTTPS/WSS in plaats van stil terug te vallen\nVerbeteren van de statusbehandeling: status is nu alleen waar als zowel HTTP als HTTPS luisteraars actief zijn",
+        "fr": "Optimiser le comportement de l'enregistrement : les journaux de requête utilisent désormais le niveau de débogage, les erreurs de redémarrage transitoire du moteur sont enregistrées comme débogage avec les détails, et les journaux de démarrage sont moins bruyants\nGestion des certificats Harden: les hôtes avec des certificats configurés mais non disponibles échouent maintenant fermé pour HTTPS/WSS au lieu de revenir silencieusement\nAméliorer la gestion de l'état `info.connection`: l'état est maintenant vrai seulement lorsque les auditeurs HTTP et HTTPS sont actifs",
+        "it": "Ottimizzare il comportamento di registrazione: i registri di richiesta ora usano il livello di debug, gli errori di riavvio di backend transitori vengono registrati come debug con i dettagli, e i log di avvio sono meno rumorosi\nDurezza della gestione del certificato: gli host con certificati configurati ma non disponibili ora non vengono chiusi per HTTPS/WSS invece di cadere in silenzio\nMigliorare la gestione dello stato `info.connection`: lo stato è ora vero solo quando entrambi gli ascoltatori HTTP e HTTPS sono attivi",
+        "es": "Optimize logging behaviour: request logs now use debug level, transient backend restart errors are logged as debug with details, and startup logs are less noisy\nManejo de certificados endurecidos: los anfitriones con certificados configurados pero no disponibles ahora fallan cerrado para HTTPS/WSS en lugar de retroceder silenciosamente\nMejorar `info.connection` manejo estatal: el estado ahora es verdad sólo cuando los oyentes HTTP y HTTPS son activos",
+        "pl": "Optymalizacja zachowania logowania: logi zapytań używają teraz poziomu debugowania, chwilowe błędy restart backend są rejestrowane jako debugowanie ze szczegółami, a dzienniki startowe są mniej hałaśliwe\nHarden obsługi certyfikatu: hosty z skonfigurowanymi, ale niedostępnymi certyfikatami nie są teraz zamknięte dla HTTPS / WSS zamiast wycofywać się cicho\nPopraw obsługę stanu 'info.connection': stan jest teraz prawdziwy tylko wtedy, gdy zarówno słuchacze HTTP, jak i HTTPS są aktywne",
+        "uk": "Оптимізуйте поведінкові записи: журнали запиту тепер використовують рівень відключення, перехідні помилки бекенду записуються як дебюг з деталями, а журнали запуску менше шумних\nВажко керувати сертифікатом: хостами з налаштованими, але не зачинені сертифікати на HTTPS/WSS замість того, щоб закохатися назад безшумно\nПокращуйте `info.connection` держзастосунок: стан тепер вірний тільки при активному використанні HTTP і HTTPS",
+        "zh-cn": "优化日志行为:请求日志现在使用调试级别,瞬态后端重启错误作为调试细节记录,启动日志的噪音较小\nHarden 证书处理: 已配置但无法获取证书的主机现在已关闭 HTTPS/ WSS , 而不是静悄悄地返回\n改善“ info.connection”状态处理: 状态现在只有在 HTTP 和 HTTPS 的听众都活动时才为真 "
+      },
       "0.1.8": {
         "en": "Opt in to Node.js 24 for GitHub Actions\nUpdate GitHub Actions test matrix (Node.js 20, 22, 24)\nAddress reviewer suggestions (use `node:` prefix, specific state roles, interval limiting)\nFix linting errors",
         "de": "Eintritt in Node.js 24 für GitHub Aktionen\nGitHub Actions Testmatrix aktualisieren (Node.js 20, 22, 24)\nAdressenreviewer-Vorschläge (verwenden Sie `node:` Präfix, bestimmte Zustandsrollen, Intervallbegrenzung)\nFehler behoben",
@@ -150,19 +163,6 @@
         "pl": "Dodano ESLint, release-script, ustawienia .vscode, porządki w kodzie",
         "uk": "Додано ESLint, release-script, налаштування .vscode, очищення коду",
         "zh-cn": "添加 ESLint、release-script、.vscode 设置，代码清理"
-      },
-      "0.1.2": {
-        "en": "Update dependencies, add responsive layout, add Changelog/License to README",
-        "de": "Abhängigkeiten aktualisiert, responsives Layout hinzugefügt, Changelog/Lizenz in README ergänzt",
-        "ru": "Обновлены зависимости, добавлена адаптивная верстка, добавлены Changelog/License в README",
-        "pt": "Dependências atualizadas, layout responsivo adicionado, Changelog/Licença no README",
-        "nl": "Afhankelijkheden bijgewerkt, responsieve lay-out toegevoegd, Changelog/Licentie in README",
-        "fr": "Dépendances mises à jour, mise en page responsive ajoutée, Changelog/Licence dans README",
-        "it": "Dipendenze aggiornate, layout responsive aggiunto, Changelog/Licenza nel README",
-        "es": "Dependencias actualizadas, diseño responsive añadido, Changelog/Licencia en README",
-        "pl": "Zaktualizowano zależności, dodano responsywny układ, Changelog/Licencja w README",
-        "uk": "Оновлено залежності, додано адаптивний макет, Changelog/Ліцензія в README",
-        "zh-cn": "更新依赖，添加响应式布局，在 README 中添加更新日志/许可证"
       }
     }
   },
