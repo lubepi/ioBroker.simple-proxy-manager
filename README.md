@@ -146,6 +146,7 @@ Certificate loading details are available in the debug log.
 ### 0.1.9 (2026-04-06)
 
 - Optimize logging behavior: request logs now use debug level, transient backend restart errors are logged as debug with details, and startup logs are less noisy
+...
 - Harden certificate handling: hosts with configured but unavailable certificates now fail closed for HTTPS/WSS instead of falling back silently
 - Improve `info.connection` state handling: state is now true only when both HTTP and HTTPS listeners are active
 
