@@ -95,6 +95,6 @@ Repository-specific rollout and migration constraints:
 
 - Preserve CommonJS module style in `main.js` unless there is an explicit migration decision.
 - Keep adapter checker compatibility (states, roles, cleanup, lifecycle behavior) aligned with current ioBroker expectations.
-- Any behavior change affecting users must include a changelog entry in `README.md` under the current in-progress section.
+- Any behavior change affecting users must include a changelog entry in `README.md` under the active changelog section used by this repository (versioned entries in normal flow, `WORK IN PROGRESS` during release preparation).
 - For admin config changes, update all i18n files in the same change and avoid partial translation rollouts.
 - Keep CI matrix compatibility for Node.js 20.x, 22.x, and 24.x when changing syntax or dependencies.
