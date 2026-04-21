@@ -22,7 +22,7 @@ class SimpleProxyManager extends utils.Adapter {
     this.proxy = null;
     this.certCheckInterval = null;
     this.certContexts = {}; // hostname -> tls.SecureContext
-    this.certHashes = {}; // collectionName -> cert string (change detection)
+    this.certPemCache = {}; // collectionName -> cert PEM string (change detection)
     this.invalidCertHosts = new Set(); // hostnames with configured but unavailable certificate
     this.httpsListening = false;
     this.httpListening = false;
@@ -33,145 +33,155 @@ class SimpleProxyManager extends utils.Adapter {
   // ============ ADAPTER STARTUP ============
 
   async onReady() {
-    const config = this.config;
+    try {
+      const config = this.config;
 
-    // Load backends from configuration
-    if (!config.backends || config.backends.length === 0) {
-      this.log.warn(
-        "No backends configured – adapter waiting for configuration",
-      );
-      return;
-    }
-
-    for (const entry of config.backends) {
-      if (!entry.enabled) {
-        continue;
-      }
-
-      // Hostname and target URL are required fields
-      if (!entry.hostname) {
-        this.log.error(
-          "Configuration error: A backend has no hostname – please check the configuration.",
-        );
-        this.terminate("Invalid configuration: hostname missing");
-        return;
-      }
-
-      // Validate hostname (RFC 1123)
-      if (!SimpleProxyManager.isValidHostname(entry.hostname)) {
-        this.log.error(
-          `Configuration error: Invalid hostname "${entry.hostname}".`,
-        );
-        this.log.error(
-          "Allowed: letters, digits, hyphens and dots. No port suffix, max. 253 characters.",
-        );
-        this.terminate(`Invalid configuration: hostname "${entry.hostname}"`);
-        return;
-      }
-      if (!entry.target) {
-        this.log.error(
-          `Configuration error: Backend "${
-            entry.hostname
-          }" has no target (target URL missing).`,
-        );
-        this.terminate(
-          `Invalid configuration: target URL missing for ${entry.hostname}`,
+      // Load backends from configuration
+      if (!config.backends || config.backends.length === 0) {
+        this.log.warn(
+          "No backends configured – adapter waiting for configuration",
         );
         return;
       }
 
-      // Validate target URL
-      try {
-        new URL(entry.target);
-      } catch {
-        this.log.error(
-          `Configuration error: Invalid target URL for "${entry.hostname}": ${
-            entry.target
-          }`,
-        );
-        this.terminate(
-          `Invalid configuration: target URL for ${entry.hostname}`,
-        );
-        return;
-      }
+      for (const entry of config.backends) {
+        if (!entry.enabled) {
+          continue;
+        }
 
-      // allowedNetworks: comma-separated string → array
-      let networks = [];
-      if (entry.allowedNetworks) {
-        networks = entry.allowedNetworks
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
-      }
-
-      // Parse CIDR networks – invalid entries terminate the adapter
-      const parsedNetworks = [];
-      for (const cidr of networks) {
-        const parsed = SimpleProxyManager.parseCIDR(cidr);
-        if (parsed === null) {
+        // Hostname and target URL are required fields
+        if (!entry.hostname) {
           this.log.error(
-            `Configuration error: Invalid CIDR entry "${cidr}" for backend "${
-              entry.hostname
-            }".`,
+            "Configuration error: A backend has no hostname – please check the configuration.",
+          );
+          this.terminate("Invalid configuration: hostname missing");
+          return;
+        }
+
+        // Validate hostname (RFC 1123)
+        if (!SimpleProxyManager.isValidHostname(entry.hostname)) {
+          this.log.error(
+            `Configuration error: Invalid hostname "${entry.hostname}".`,
           );
           this.log.error(
-            "Without valid IP filtering all IPs would be allowed – adapter is stopping.",
+            "Allowed: letters, digits, hyphens and dots. No port suffix, max. 253 characters.",
+          );
+          this.terminate(`Invalid configuration: hostname "${entry.hostname}"`);
+          return;
+        }
+        if (!entry.target) {
+          this.log.error(
+            `Configuration error: Backend "${entry.hostname}" has no target (target URL missing).`,
           );
           this.terminate(
-            `Invalid configuration: CIDR "${cidr}" for ${entry.hostname}`,
+            `Invalid configuration: target URL missing for ${entry.hostname}`,
           );
           return;
         }
-        parsedNetworks.push(parsed);
+
+        // Validate target URL
+        try {
+          new URL(entry.target);
+        } catch {
+          this.log.error(
+            `Configuration error: Invalid target URL for "${entry.hostname}": ${entry.target}`,
+          );
+          this.terminate(
+            `Invalid configuration: target URL for ${entry.hostname}`,
+          );
+          return;
+        }
+
+        // allowedNetworks: comma-separated string → array
+        let networks = [];
+        if (entry.allowedNetworks) {
+          if (typeof entry.allowedNetworks !== "string") {
+            const receivedType = Array.isArray(entry.allowedNetworks)
+              ? "array"
+              : typeof entry.allowedNetworks;
+            this.log.error(
+              `Configuration error: Backend "${entry.hostname}" has invalid allowedNetworks type (${receivedType}). Expected a comma-separated string.`,
+            );
+            this.terminate(
+              `Invalid configuration: allowedNetworks type for ${entry.hostname}`,
+            );
+            return;
+          }
+          networks = entry.allowedNetworks
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        }
+
+        // Parse CIDR networks – invalid entries terminate the adapter
+        const parsedNetworks = [];
+        for (const cidr of networks) {
+          const parsed = SimpleProxyManager.parseCIDR(cidr);
+          if (parsed === null) {
+            this.log.error(
+              `Configuration error: Invalid CIDR entry "${cidr}" for backend "${entry.hostname}".`,
+            );
+            this.log.error(
+              "Without valid IP filtering all IPs would be allowed – adapter is stopping.",
+            );
+            this.terminate(
+              `Invalid configuration: CIDR "${cidr}" for ${entry.hostname}`,
+            );
+            return;
+          }
+          parsedNetworks.push(parsed);
+        }
+
+        this.backends[entry.hostname.toLowerCase()] = {
+          target: entry.target,
+          allowedNetworks: networks,
+          parsedNetworks: parsedNetworks,
+          changeOrigin: !!entry.changeOrigin,
+          certificate: entry.certificate || "",
+        };
       }
 
-      this.backends[entry.hostname.toLowerCase()] = {
-        target: entry.target,
-        allowedNetworks: networks,
-        parsedNetworks: parsedNetworks,
-        changeOrigin: !!entry.changeOrigin,
-        certificate: entry.certificate || "",
-      };
-    }
+      if (Object.keys(this.backends).length === 0) {
+        this.log.warn("No active backends configured");
+        return;
+      }
 
-    if (Object.keys(this.backends).length === 0) {
-      this.log.warn("No active backends configured");
-      return;
-    }
+      // Prepare HSTS header (only relevant for HTTPS backends)
+      if (config.enableHSTS) {
+        this.hstsHeader = `max-age=${config.hstsMaxAge || 31536000}; includeSubDomains`;
+      }
 
-    // Prepare HSTS header (only relevant for HTTPS backends)
-    if (config.enableHSTS) {
-      this.hstsHeader = `max-age=${config.hstsMaxAge || 31536000}; includeSubDomains`;
-    }
-
-    // Check ioBroker default certificate (mandatory prerequisite)
-    const certsObj = await this.getForeignObjectAsync("system.certificates");
-    const sysCerts =
-      (certsObj && certsObj.native && certsObj.native.certificates) || {};
-    if (
-      !sysCerts.defaultPrivate ||
-      !(sysCerts.defaultPublic || sysCerts.defaultChained)
-    ) {
-      this.log.error("=== ioBroker default certificate missing! ===");
-      this.log.error(
-        "The adapter requires the ioBroker default certificate (defaultPrivate + defaultPublic).",
-      );
-      this.log.error("Please create it with: iobroker cert create");
-      this.log.error("Adapter is stopping.");
-      if (typeof this.terminate === "function") {
+      // Check ioBroker default certificate (mandatory prerequisite)
+      const certsObj = await this.getForeignObjectAsync("system.certificates");
+      const sysCerts =
+        (certsObj && certsObj.native && certsObj.native.certificates) || {};
+      if (
+        !sysCerts.defaultPrivate ||
+        !(sysCerts.defaultPublic || sysCerts.defaultChained)
+      ) {
+        this.log.error("=== ioBroker default certificate missing! ===");
+        this.log.error(
+          "The adapter requires the ioBroker default certificate (defaultPrivate + defaultPublic).",
+        );
+        this.log.error("Please create it with: iobroker cert create");
+        this.log.error("Adapter is stopping.");
         this.terminate("ioBroker default certificate missing");
+        return;
       }
-      return;
-    }
 
-    // Load SSL certificates
-    const sslOptions = await this.loadAllCertificates();
-    if (sslOptions === null) {
-      return;
-    }
+      // Load SSL certificates
+      const sslOptions = await this.loadAllCertificates();
+      if (sslOptions === null) {
+        return;
+      }
 
-    // Start proxy (HTTP + HTTPS)
-    this.startProxy(sslOptions);
+      // Start proxy (HTTP + HTTPS)
+      this.startProxy(sslOptions);
+    } catch (e) {
+      const message = e && e.message ? e.message : String(e);
+      this.log.error(`Unhandled startup error: ${message}`);
+      this.terminate(`Unhandled startup error: ${message}`);
+    }
   }
 
   // ============ SSL CERTIFICATES FROM IOBROKER ============
@@ -269,9 +279,27 @@ class SimpleProxyManager extends utils.Adapter {
       for (const channel of existingChannels || []) {
         const certName = channel._id.split(".").pop();
         if (!usedCollections.has(certName)) {
-          await this.delObjectAsync(`certificates.${certName}.expires`);
-          await this.delObjectAsync(`certificates.${certName}.daysLeft`);
-          await this.delObjectAsync(`certificates.${certName}`);
+          try {
+            await this.delObjectAsync(`certificates.${certName}.expires`);
+          } catch (e) {
+            this.log.debug(
+              `Could not remove stale state certificates.${certName}.expires: ${e.message}`,
+            );
+          }
+          try {
+            await this.delObjectAsync(`certificates.${certName}.daysLeft`);
+          } catch (e) {
+            this.log.debug(
+              `Could not remove stale state certificates.${certName}.daysLeft: ${e.message}`,
+            );
+          }
+          try {
+            await this.delObjectAsync(`certificates.${certName}`);
+          } catch (e) {
+            this.log.debug(
+              `Could not remove stale channel certificates.${certName}: ${e.message}`,
+            );
+          }
           this.log.debug(`Removed stale certificate states for "${certName}"`);
         }
       }
@@ -298,13 +326,27 @@ class SimpleProxyManager extends utils.Adapter {
         this.clearInvalidCertificateHosts(collName);
 
         // Cache cert content for change detection
-        this.certHashes[collName] = resolved.cert;
+        this.certPemCache[collName] = resolved.cert;
 
         // Create SecureContext for every hostname that uses this collection
-        const ctx = tls.createSecureContext({
-          key: resolved.key,
-          cert: resolved.cert,
-        });
+        let ctx;
+        try {
+          ctx = tls.createSecureContext({
+            key: resolved.key,
+            cert: resolved.cert,
+          });
+        } catch (tlsErr) {
+          const affectedHosts = this.markInvalidCertificateHosts(collName);
+          this.log.error(
+            `Failed to create TLS context for "${collName}": ${tlsErr.message}`,
+          );
+          if (affectedHosts.length > 0) {
+            this.log.error(
+              `HTTPS disabled for host(s): ${affectedHosts.join(", ")}`,
+            );
+          }
+          continue;
+        }
         for (const [hostname, backend] of Object.entries(this.backends)) {
           if (backend.certificate === collName) {
             this.certContexts[hostname] = ctx;
@@ -334,9 +376,7 @@ class SimpleProxyManager extends utils.Adapter {
             true,
           );
           this.log.debug(
-            `Certificate "${
-              collName
-            }": valid until ${expiryDate.toISOString()} (${daysLeft} days)`,
+            `Certificate "${collName}": valid until ${expiryDate.toISOString()} (${daysLeft} days)`,
           );
           if (
             this.config.certWarnDays > 0 &&
@@ -404,70 +444,76 @@ class SimpleProxyManager extends utils.Adapter {
       }
 
       for (const collName of usedCertNames) {
-        const resolved = this.resolveCertCollection(collName, obj);
-        if (!resolved) {
-          const affectedHosts = this.markInvalidCertificateHosts(collName);
-          if (affectedHosts.length > 0) {
-            this.log.warn(
-              `Certificate collection "${collName}" is unavailable – HTTPS disabled for: ${affectedHosts.join(", ")}`,
+        try {
+          const resolved = this.resolveCertCollection(collName, obj);
+          if (!resolved) {
+            const affectedHosts = this.markInvalidCertificateHosts(collName);
+            if (affectedHosts.length > 0) {
+              this.log.warn(
+                `Certificate collection "${collName}" is unavailable – HTTPS disabled for: ${affectedHosts.join(", ")}`,
+              );
+            }
+            continue;
+          }
+
+          const recoveredHosts = this.clearInvalidCertificateHosts(collName);
+          if (recoveredHosts.length > 0) {
+            this.log.info(
+              `Certificate collection "${collName}" restored – HTTPS re-enabled for: ${recoveredHosts.join(", ")}`,
             );
           }
-          continue;
-        }
 
-        const recoveredHosts = this.clearInvalidCertificateHosts(collName);
-        if (recoveredHosts.length > 0) {
-          this.log.info(
-            `Certificate collection "${collName}" restored – HTTPS re-enabled for: ${recoveredHosts.join(", ")}`,
-          );
-        }
+          // Check whether cert content has changed
+          if (resolved.cert !== this.certPemCache[collName]) {
+            const ctx = tls.createSecureContext({
+              key: resolved.key,
+              cert: resolved.cert,
+            });
+            // Update all hostnames that use this collection
+            for (const [h, b] of Object.entries(this.backends)) {
+              if (b.certificate === collName) {
+                this.certContexts[h] = ctx;
+              }
+            }
+            this.certPemCache[collName] = resolved.cert;
+            changed = true;
+            this.log.info(`Certificate "${collName}" automatically reloaded`);
+          }
 
-        // Check whether cert content has changed
-        if (resolved.cert !== this.certHashes[collName]) {
-          const ctx = tls.createSecureContext({
-            key: resolved.key,
-            cert: resolved.cert,
-          });
-          // Update all hostnames that use this collection
-          for (const [h, b] of Object.entries(this.backends)) {
-            if (b.certificate === collName) {
-              this.certContexts[h] = ctx;
+          // Update per-certificate states
+          const expiryDate = SimpleProxyManager.getExpiryFromPem(resolved.cert);
+          if (expiryDate && !isNaN(expiryDate.getTime())) {
+            const daysLeft = Math.floor(
+              (expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+            );
+            await this.setStateAsync(
+              `certificates.${collName}.expires`,
+              expiryDate.toISOString(),
+              true,
+            );
+            await this.setStateAsync(
+              `certificates.${collName}.daysLeft`,
+              daysLeft,
+              true,
+            );
+            if (
+              this.config.certWarnDays > 0 &&
+              daysLeft < this.config.certWarnDays
+            ) {
+              this.log.warn(
+                `Certificate "${collName}" expires in ${daysLeft} days!`,
+              );
             }
           }
-          this.certHashes[collName] = resolved.cert;
-          changed = true;
-          this.log.info(`Certificate "${collName}" automatically reloaded`);
-        }
 
-        // Update per-certificate states
-        const expiryDate = SimpleProxyManager.getExpiryFromPem(resolved.cert);
-        if (expiryDate && !isNaN(expiryDate.getTime())) {
-          const daysLeft = Math.floor(
-            (expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-          );
-          await this.setStateAsync(
-            `certificates.${collName}.expires`,
-            expiryDate.toISOString(),
-            true,
-          );
-          await this.setStateAsync(
-            `certificates.${collName}.daysLeft`,
-            daysLeft,
-            true,
-          );
-          if (
-            this.config.certWarnDays > 0 &&
-            daysLeft < this.config.certWarnDays
-          ) {
-            this.log.warn(
-              `Certificate "${collName}" expires in ${daysLeft} days!`,
-            );
+          // Track default cert – needed to update the server's base SecureContext
+          if (collName === defaultCertName || !newDefault) {
+            newDefault = resolved;
           }
-        }
-
-        // Track default cert – needed to update the server's base SecureContext
-        if (collName === defaultCertName || !newDefault) {
-          newDefault = resolved;
+        } catch (e) {
+          this.log.error(
+            `Error while processing certificate "${collName}": ${e.message}`,
+          );
         }
       }
 
@@ -587,11 +633,15 @@ class SimpleProxyManager extends utils.Adapter {
    * The adapter is considered connected only when both listeners are active.
    */
   updateConnectionState() {
-    this.setState(
-      "info.connection",
-      this.httpsListening && this.httpListening,
-      true,
-    );
+    try {
+      this.setState(
+        "info.connection",
+        this.httpsListening && this.httpListening,
+        true,
+      );
+    } catch (e) {
+      this.log.debug(`Could not update info.connection state: ${e.message}`);
+    }
   }
 
   /**
@@ -770,7 +820,13 @@ class SimpleProxyManager extends utils.Adapter {
   static parseCIDR(cidr) {
     cidr = cidr.trim();
     const parts = cidr.split("/");
+    if (parts.length < 1 || parts.length > 2) {
+      return null;
+    }
     const ipStr = parts[0];
+    if (!ipStr) {
+      return null;
+    }
     const isV6 = ipStr.includes(":");
     const bytes = SimpleProxyManager.parseIP(ipStr);
     if (!bytes) {
@@ -778,10 +834,11 @@ class SimpleProxyManager extends utils.Adapter {
     }
     let prefixLen;
     if (parts.length === 2) {
-      prefixLen = parseInt(parts[1], 10);
-      if (isNaN(prefixLen)) {
+      const prefixStr = parts[1];
+      if (!/^\d+$/.test(prefixStr)) {
         return null;
       }
+      prefixLen = parseInt(prefixStr, 10);
       // IPv4 prefixes are shifted by 96 bits (128 − 32) to match
       // the IPv6-mapped IPv4 representation used internally.
       if (!isV6) {
@@ -889,62 +946,79 @@ class SimpleProxyManager extends utils.Adapter {
    * @param res - The HTTP response object
    */
   handleRequest(req, res) {
-    this.stripForwardedHeaders(req);
-    const host = (req.headers.host || "").split(":")[0].toLowerCase();
-    const clientIP = this.getClientIP(req);
-    const backend = this.backends[host];
+    try {
+      this.stripForwardedHeaders(req);
+      const host = (req.headers.host || "").split(":")[0].toLowerCase();
+      const clientIP = this.getClientIP(req);
+      const backend = this.backends[host];
 
-    if (this.config.logRequests) {
-      this.log.debug(`${clientIP} -> HTTPS ${host}${req.url}`);
-    }
-
-    // Unknown host (should not happen – SNICallback rejects unknown hosts)
-    if (!backend) {
-      res.writeHead(421, { "Content-Type": "text/html; charset=utf-8" });
-      res.end("<h1>421 Misdirected Request</h1>");
-      return;
-    }
-
-    // Backend without certificate → only reachable via HTTP
-    if (!backend.certificate) {
-      const httpPort = this.config.httpPort || 80;
-      const portSuffix = httpPort === 80 ? "" : `:${httpPort}`;
-      res.writeHead(302, { Location: `http://${host}${portSuffix}${req.url}` });
-      res.end();
-      return;
-    }
-
-    // Host requires HTTPS certificate, but no valid context is available.
-    if (!this.hasReadyCertificateForHost(host)) {
-      res.writeHead(503, { "Content-Type": "text/html; charset=utf-8" });
-      res.end("<h1>503 Service Unavailable</h1>");
-      return;
-    }
-
-    // IP filtering
-    if (!this.isAllowedIP(clientIP, backend)) {
-      if (this.config.logSecurity) {
-        this.log.warn(`Access denied for ${clientIP} on ${host}`);
+      if (this.config.logRequests) {
+        this.log.debug(`${clientIP} -> HTTPS ${host}${req.url}`);
       }
-      const headers = { "Content-Type": "text/html; charset=utf-8" };
+
+      // Unknown host (should not happen – SNICallback rejects unknown hosts)
+      if (!backend) {
+        res.writeHead(421, { "Content-Type": "text/html; charset=utf-8" });
+        res.end("<h1>421 Misdirected Request</h1>");
+        return;
+      }
+
+      // Backend without certificate → only reachable via HTTP
+      if (!backend.certificate) {
+        const httpPort = this.config.httpPort || 80;
+        const portSuffix = httpPort === 80 ? "" : `:${httpPort}`;
+        res.writeHead(302, {
+          Location: `http://${host}${portSuffix}${req.url}`,
+        });
+        res.end();
+        return;
+      }
+
+      // Host requires HTTPS certificate, but no valid context is available.
+      if (!this.hasReadyCertificateForHost(host)) {
+        res.writeHead(503, { "Content-Type": "text/html; charset=utf-8" });
+        res.end("<h1>503 Service Unavailable</h1>");
+        return;
+      }
+
+      // IP filtering
+      if (!this.isAllowedIP(clientIP, backend)) {
+        if (this.config.logSecurity) {
+          this.log.warn(`Access denied for ${clientIP} on ${host}`);
+        }
+        const headers = { "Content-Type": "text/html; charset=utf-8" };
+        if (this.hstsHeader) {
+          headers["Strict-Transport-Security"] = this.hstsHeader;
+        }
+        res.writeHead(403, headers);
+        res.end("<h1>403 Forbidden</h1>");
+        return;
+      }
+
+      // HSTS only for HTTPS backends
       if (this.hstsHeader) {
-        headers["Strict-Transport-Security"] = this.hstsHeader;
+        res.setHeader("Strict-Transport-Security", this.hstsHeader);
       }
-      res.writeHead(403, headers);
-      res.end("<h1>403 Forbidden</h1>");
-      return;
-    }
 
-    // HSTS only for HTTPS backends
-    if (this.hstsHeader) {
-      res.setHeader("Strict-Transport-Security", this.hstsHeader);
+      // Forward request to backend
+      this.proxy.web(req, res, {
+        target: backend.target,
+        changeOrigin: backend.changeOrigin,
+      });
+    } catch (e) {
+      const message = e && e.message ? e.message : String(e);
+      this.log.error(`HTTPS request handling failed: ${message}`);
+      if (res && typeof res.writeHead === "function" && !res.headersSent) {
+        const headers = { "Content-Type": "text/html; charset=utf-8" };
+        if (this.hstsHeader) {
+          headers["Strict-Transport-Security"] = this.hstsHeader;
+        }
+        res.writeHead(500, headers);
+        res.end("<h1>500 Internal Server Error</h1>");
+      } else if (res && typeof res.destroy === "function") {
+        res.destroy();
+      }
     }
-
-    // Forward request to backend
-    this.proxy.web(req, res, {
-      target: backend.target,
-      changeOrigin: backend.changeOrigin,
-    });
   }
 
   /**
@@ -956,60 +1030,71 @@ class SimpleProxyManager extends utils.Adapter {
    * @param res - The HTTP response object
    */
   handleHttpRequest(req, res) {
-    this.stripForwardedHeaders(req);
-    // Forward ACME challenge (only when acmePort is configured)
-    if (
-      this.config.acmePort &&
-      req.url.startsWith("/.well-known/acme-challenge/")
-    ) {
-      this.proxy.web(req, res, {
-        target: `http://127.0.0.1:${this.config.acmePort}`,
-      });
-      return;
-    }
-
-    const host = (req.headers.host || "").split(":")[0].toLowerCase();
-    const clientIP = this.getClientIP(req);
-    const backend = this.backends[host];
-
-    if (this.config.logRequests) {
-      this.log.debug(`${clientIP} -> HTTP ${host}${req.url}`);
-    }
-
-    // Unknown host
-    if (!backend) {
-      this.log.debug(`Unknown host (HTTP): ${host}`);
-      res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" });
-      res.end("<h1>404 Not Found</h1>");
-      return;
-    }
-
-    // Backend with certificate → redirect to HTTPS
-    if (backend.certificate) {
-      const httpsPort = this.config.httpsPort || 443;
-      const portSuffix = httpsPort === 443 ? "" : `:${httpsPort}`;
-      res.writeHead(301, {
-        Location: `https://${host}${portSuffix}${req.url}`,
-      });
-      res.end();
-      return;
-    }
-
-    // IP filtering
-    if (!this.isAllowedIP(clientIP, backend)) {
-      if (this.config.logSecurity) {
-        this.log.warn(`Access denied for ${clientIP} on ${host} (HTTP)`);
+    try {
+      this.stripForwardedHeaders(req);
+      // Forward ACME challenge (only when acmePort is configured)
+      if (
+        this.config.acmePort &&
+        req.url.startsWith("/.well-known/acme-challenge/")
+      ) {
+        this.proxy.web(req, res, {
+          target: `http://127.0.0.1:${this.config.acmePort}`,
+        });
+        return;
       }
-      res.writeHead(403, { "Content-Type": "text/html; charset=utf-8" });
-      res.end("<h1>403 Forbidden</h1>");
-      return;
-    }
 
-    // Forward request to backend (HTTP)
-    this.proxy.web(req, res, {
-      target: backend.target,
-      changeOrigin: backend.changeOrigin,
-    });
+      const host = (req.headers.host || "").split(":")[0].toLowerCase();
+      const clientIP = this.getClientIP(req);
+      const backend = this.backends[host];
+
+      if (this.config.logRequests) {
+        this.log.debug(`${clientIP} -> HTTP ${host}${req.url}`);
+      }
+
+      // Unknown host
+      if (!backend) {
+        this.log.debug(`Unknown host (HTTP): ${host}`);
+        res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" });
+        res.end("<h1>404 Not Found</h1>");
+        return;
+      }
+
+      // Backend with certificate → redirect to HTTPS
+      if (backend.certificate) {
+        const httpsPort = this.config.httpsPort || 443;
+        const portSuffix = httpsPort === 443 ? "" : `:${httpsPort}`;
+        res.writeHead(301, {
+          Location: `https://${host}${portSuffix}${req.url}`,
+        });
+        res.end();
+        return;
+      }
+
+      // IP filtering
+      if (!this.isAllowedIP(clientIP, backend)) {
+        if (this.config.logSecurity) {
+          this.log.warn(`Access denied for ${clientIP} on ${host} (HTTP)`);
+        }
+        res.writeHead(403, { "Content-Type": "text/html; charset=utf-8" });
+        res.end("<h1>403 Forbidden</h1>");
+        return;
+      }
+
+      // Forward request to backend (HTTP)
+      this.proxy.web(req, res, {
+        target: backend.target,
+        changeOrigin: backend.changeOrigin,
+      });
+    } catch (e) {
+      const message = e && e.message ? e.message : String(e);
+      this.log.error(`HTTP request handling failed: ${message}`);
+      if (res && typeof res.writeHead === "function" && !res.headersSent) {
+        res.writeHead(500, { "Content-Type": "text/html; charset=utf-8" });
+        res.end("<h1>500 Internal Server Error</h1>");
+      } else if (res && typeof res.destroy === "function") {
+        res.destroy();
+      }
+    }
   }
 
   /**
@@ -1023,55 +1108,63 @@ class SimpleProxyManager extends utils.Adapter {
    * @param head - The first packet of the upgraded stream
    */
   handleUpgrade(req, socket, head) {
-    this.stripForwardedHeaders(req);
-    const host = (req.headers.host || "").split(":")[0].toLowerCase();
-    const clientIP = this.getClientIP(req);
-    const backend = this.backends[host];
-    const isHttps = req.socket.encrypted;
+    try {
+      this.stripForwardedHeaders(req);
+      const host = (req.headers.host || "").split(":")[0].toLowerCase();
+      const clientIP = this.getClientIP(req);
+      const backend = this.backends[host];
+      const isHttps = req.socket.encrypted;
 
-    if (this.config.logRequests) {
-      this.log.debug(
-        `${clientIP} -> WS${isHttps ? "S" : ""} ${host}${req.url}`,
-      );
-    }
-
-    if (!backend) {
-      socket.destroy();
-      return;
-    }
-
-    // HTTPS upgrade only for backends with certificate, HTTP upgrade only for those without
-    if (isHttps && !backend.certificate) {
-      socket.destroy();
-      return;
-    }
-    if (!isHttps && backend.certificate) {
-      socket.destroy();
-      return;
-    }
-
-    if (
-      isHttps &&
-      backend.certificate &&
-      !this.hasReadyCertificateForHost(host)
-    ) {
-      socket.destroy();
-      return;
-    }
-
-    // IP filtering for WebSockets as well
-    if (!this.isAllowedIP(clientIP, backend)) {
-      if (this.config.logSecurity) {
-        this.log.warn(`WebSocket access denied for ${clientIP}`);
+      if (this.config.logRequests) {
+        this.log.debug(
+          `${clientIP} -> WS${isHttps ? "S" : ""} ${host}${req.url}`,
+        );
       }
-      socket.destroy();
-      return;
-    }
 
-    this.proxy.ws(req, socket, head, {
-      target: backend.target,
-      changeOrigin: backend.changeOrigin,
-    });
+      if (!backend) {
+        socket.destroy();
+        return;
+      }
+
+      // HTTPS upgrade only for backends with certificate, HTTP upgrade only for those without
+      if (isHttps && !backend.certificate) {
+        socket.destroy();
+        return;
+      }
+      if (!isHttps && backend.certificate) {
+        socket.destroy();
+        return;
+      }
+
+      if (
+        isHttps &&
+        backend.certificate &&
+        !this.hasReadyCertificateForHost(host)
+      ) {
+        socket.destroy();
+        return;
+      }
+
+      // IP filtering for WebSockets as well
+      if (!this.isAllowedIP(clientIP, backend)) {
+        if (this.config.logSecurity) {
+          this.log.warn(`WebSocket access denied for ${clientIP}`);
+        }
+        socket.destroy();
+        return;
+      }
+
+      this.proxy.ws(req, socket, head, {
+        target: backend.target,
+        changeOrigin: backend.changeOrigin,
+      });
+    } catch (e) {
+      const message = e && e.message ? e.message : String(e);
+      this.log.error(`WebSocket upgrade handling failed: ${message}`);
+      if (socket && typeof socket.destroy === "function") {
+        socket.destroy();
+      }
+    }
   }
 
   // ============ PROXY STARTUP ============
@@ -1091,42 +1184,65 @@ class SimpleProxyManager extends utils.Adapter {
 
     // Error handling for proxy (res can be a socket during WebSocket upgrades)
     this.proxy.on("error", (err, req, res) => {
-      const host = ((req && req.headers && req.headers.host) || "")
-        .split(":")[0]
-        .toLowerCase();
-      const backend = host ? this.backends[host] : null;
-      const target = (backend && backend.target) || "unknown target";
-      const method = (req && req.method) || "?";
-      const url = (req && req.url) || "";
-      const errorText = SimpleProxyManager.formatProxyError(err);
-      const logLine = `Proxy error: ${method} ${host || "unknown-host"}${url} -> ${target} (${errorText})`;
+      try {
+        const hostHeader = req && req.headers ? req.headers.host : "";
+        const host = (typeof hostHeader === "string" ? hostHeader : "")
+          .split(":")[0]
+          .toLowerCase();
+        const backend = host ? this.backends[host] : null;
+        const target = (backend && backend.target) || "unknown target";
+        const method = (req && req.method) || "?";
+        const url = (req && req.url) || "";
+        const errorText = SimpleProxyManager.formatProxyError(err);
+        const logLine = `Proxy error: ${method} ${host || "unknown-host"}${url} -> ${target} (${errorText})`;
 
-      if (SimpleProxyManager.isTransientBackendError(err)) {
-        // Expected during backend restarts: keep default logs quiet.
-        this.log.debug(logLine);
-      } else {
-        this.log.error(logLine);
-      }
-
-      if (res && typeof res.writeHead === "function" && !res.headersSent) {
-        const headers = { "Content-Type": "text/html; charset=utf-8" };
-        if (this.hstsHeader) {
-          headers["Strict-Transport-Security"] = this.hstsHeader;
+        if (SimpleProxyManager.isTransientBackendError(err)) {
+          // Expected during backend restarts: keep default logs quiet.
+          this.log.debug(logLine);
+        } else {
+          this.log.error(logLine);
         }
-        res.writeHead(502, headers);
-        res.end("<h1>502 Bad Gateway</h1>");
-      } else if (res && typeof res.destroy === "function") {
-        // WebSocket upgrade: res is a net.Socket
-        res.destroy();
+
+        if (res && typeof res.writeHead === "function" && !res.headersSent) {
+          const headers = { "Content-Type": "text/html; charset=utf-8" };
+          if (this.hstsHeader) {
+            headers["Strict-Transport-Security"] = this.hstsHeader;
+          }
+          res.writeHead(502, headers);
+          res.end("<h1>502 Bad Gateway</h1>");
+        } else if (res && typeof res.destroy === "function") {
+          // WebSocket upgrade: res is a net.Socket
+          res.destroy();
+        }
+      } catch (handlerError) {
+        const message =
+          handlerError && handlerError.message
+            ? handlerError.message
+            : String(handlerError);
+        this.log.error(`Proxy error handler failed: ${message}`);
+        if (res && typeof res.destroy === "function") {
+          res.destroy();
+        }
       }
     });
 
     // HSTS header for all proxy responses (HTTPS only)
     if (this.hstsHeader) {
       this.proxy.on("proxyRes", (proxyRes, req) => {
-        // Only set HSTS for encrypted connections
-        if (req.socket.encrypted) {
-          proxyRes.headers["strict-transport-security"] = this.hstsHeader;
+        try {
+          // Only set HSTS for encrypted connections
+          if (
+            req &&
+            req.socket &&
+            req.socket.encrypted &&
+            proxyRes &&
+            proxyRes.headers
+          ) {
+            proxyRes.headers["strict-transport-security"] = this.hstsHeader;
+          }
+        } catch (e) {
+          const message = e && e.message ? e.message : String(e);
+          this.log.error(`Proxy response handling failed: ${message}`);
         }
       });
     }
@@ -1167,13 +1283,6 @@ class SimpleProxyManager extends utils.Adapter {
     });
 
     const httpsPort = config.httpsPort || 443;
-    this.httpsServer.listen(httpsPort, "::", () => {
-      this.log.info(
-        `HTTPS reverse proxy running on port ${httpsPort} (IPv4 + IPv6)`,
-      );
-      this.httpsListening = true;
-      this.updateConnectionState();
-    });
 
     this.httpsServer.on("error", (err) => {
       this.log.error(`HTTPS server error: ${err.message}`);
@@ -1181,9 +1290,7 @@ class SimpleProxyManager extends utils.Adapter {
         this.log.error(`Port ${httpsPort} is already in use!`);
       } else if (err.code === "EACCES") {
         this.log.error(
-          `No permission for port ${
-            httpsPort
-          } – elevated privileges required for ports < 1024`,
+          `No permission for port ${httpsPort} – elevated privileges required for ports < 1024`,
         );
       }
       this.httpsListening = false;
@@ -1192,6 +1299,14 @@ class SimpleProxyManager extends utils.Adapter {
 
     this.httpsServer.on("close", () => {
       this.httpsListening = false;
+      this.updateConnectionState();
+    });
+
+    this.httpsServer.listen(httpsPort, "::", () => {
+      this.log.info(
+        `HTTPS reverse proxy running on port ${httpsPort} (IPv4 + IPv6)`,
+      );
+      this.httpsListening = true;
       this.updateConnectionState();
     });
 
@@ -1205,21 +1320,13 @@ class SimpleProxyManager extends utils.Adapter {
       this.handleUpgrade(req, socket, head);
     });
 
-    this.httpServer.listen(httpPort, "::", () => {
-      this.log.info(`HTTP server running on port ${httpPort} (IPv4 + IPv6)`);
-      this.httpListening = true;
-      this.updateConnectionState();
-    });
-
     this.httpServer.on("error", (err) => {
       this.log.error(`HTTP server error: ${err.message}`);
       if (err.code === "EADDRINUSE") {
         this.log.error(`Port ${httpPort} is already in use!`);
       } else if (err.code === "EACCES") {
         this.log.error(
-          `No permission for port ${
-            httpPort
-          } – elevated privileges required for ports < 1024`,
+          `No permission for port ${httpPort} – elevated privileges required for ports < 1024`,
         );
       }
       this.httpListening = false;
@@ -1228,6 +1335,12 @@ class SimpleProxyManager extends utils.Adapter {
 
     this.httpServer.on("close", () => {
       this.httpListening = false;
+      this.updateConnectionState();
+    });
+
+    this.httpServer.listen(httpPort, "::", () => {
+      this.log.info(`HTTP server running on port ${httpPort} (IPv4 + IPv6)`);
+      this.httpListening = true;
       this.updateConnectionState();
     });
 
@@ -1345,8 +1458,8 @@ class SimpleProxyManager extends utils.Adapter {
       this.httpsListening = false;
       this.httpListening = false;
       this.updateConnectionState();
-    } catch {
-      // Ignore cleanup errors
+    } catch (e) {
+      this.log.debug(`Error while stopping reverse proxy: ${e.message}`);
     }
     callback();
   }

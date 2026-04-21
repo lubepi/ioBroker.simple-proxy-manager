@@ -143,6 +143,12 @@ Hosts with an unknown hostname are rejected at the TLS level – no fallback cer
 Certificate loading details are available in the debug log.
 
 ## Changelog
+### **WORK IN PROGRESS**
+
+- Harden error handling: certificate loading, renewal, cleanup and adapter teardown are now individually guarded so a single failure no longer aborts the entire operation
+- Fix: register server `error`/`close` handlers before calling `listen()` (correct Node.js pattern)
+- Code quality: remove inconsistent `typeof this.terminate` guards, rename misleading `certHashes` to `certPemCache`, fix template literal formatting
+
 ### 0.1.9 (2026-04-06)
 
 - Optimize logging behavior: request logs now use debug level, transient backend restart errors are logged as debug with details, and startup logs are less noisy
