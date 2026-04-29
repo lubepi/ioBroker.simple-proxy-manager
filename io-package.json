@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "simple-proxy-manager",
-    "version": "0.1.9",
+    "version": "0.1.10",
     "titleLang": {
       "en": "Simple Proxy Manager",
       "de": "Einfacher Proxy Manager",
@@ -73,6 +73,19 @@
       }
     ],
     "news": {
+      "0.1.10": {
+        "en": "Harden error handling: certificate loading, renewal, cleanup and adapter teardown are now individually guarded so a single failure no longer aborts the entire operation\nFix: register server `error`/`close` handlers before calling `listen()` (correct Node.js pattern)\nCode quality: remove inconsistent `typeof this.terminate` guards, rename misleading `certHashes` to `certPemCache`, fix template literal formatting",
+        "de": "Härtefehlerbehandlung: Zertifikatsbeladung, Erneuerung, Aufräumung und Adapterabriss werden nun individuell bewacht, so dass ein einziger Ausfall nicht mehr den gesamten Betrieb abbricht\nFix: Registrieren Sie Server `error`/`close` Handler, bevor Sie `listen()` (korrigieren Node.js-Muster)\nCode-Qualität: entfernen Sie inkonsistent `typeof this.terminate` Wächter, umbenennen irreführende `certHashes` zu `certPemCache`, beheben Template-Literal-Formatierung",
+        "ru": "Обработка ошибок: загрузка сертификата, обновление, очистка и удаление адаптера теперь индивидуально защищены, поэтому один отказ больше не прерывает всю операцию\nИсправление: зарегистрируйте сервер «обработчиков ошибок» / «закрыть» перед вызовом «listen()» (правильный шаблон Node.js)\nКачество кода: удалите непоследовательные «типы этого.terminate», переименуйте вводящие в заблуждение «certHashes» в «certPemCache», исправьте шаблон буквального форматирования",
+        "pt": "Endureça o tratamento de erros: o carregamento, a renovação, a limpeza e o rasgo do adaptador do certificado são guardados individualmente para que uma única falha não aborte mais toda a operação\nCorrigir: registrar servidores `error`/`fechar` manipuladores antes de chamar `listen()` (padrão Node.js correto)\nQualidade do código: remover inconsistente `typeof this.terminate` Guards, renomear enganoso `certHashes` para `certPemCache', corrigir formatação literal do modelo",
+        "nl": "Geharde foutafhandeling: certificaat laden, vernieuwen, opruimen en adapter afbreken worden nu individueel bewaakt zodat een enkele fout niet langer de hele operatie afbreekt\nFix: register server \nCodekwaliteit: verwijder inconsistente ",
+        "fr": "Gestion des erreurs de durcissement : chargement, renouvellement, nettoyage et démontage de l'adaptateur sont désormais individuellement surveillés, de sorte qu'une seule défaillance n'a plus pour effet d'interrompre toute l'opération\nCorrection: enregistrer les gestionnaires `error`/`close` du serveur avant d'appeler `listen()` (correct Node.js pattern)\nQualité du code: supprimer les protections incohérentes `type of this.terminate`, renommer les `certHashes` trompeuses à `certPemCache`, corriger le formatage littéral du modèle",
+        "it": "Manutenzione degli errori: il caricamento del certificato, il rinnovo, la pulizia e lo strappo dell'adattatore sono ora singolarmente sorvegliati in modo che un singolo guasto non abortisca più l'intera operazione\nFisso: registrare server `error`/`close` handlers prima di chiamare `listen()` (corretto Node.js pattern)\nQualità del codice: rimuovere inconsistente `type of this.terminate` guards, rinominare ingannevole `certHashes` a `certPemCache`, fix modello di formattazione letterale",
+        "es": "Manejo de errores endurecidos: carga de certificados, renovación, limpieza y desgarro del adaptador ahora están protegidos individualmente por lo que un solo fallo ya no aborta toda la operación\nFix: register server `error`/`close` handlers before calling `listen()` (correct Node.js pattern)\nCalidad del código: eliminar los guardias inconsistentes `tipo de este.terminato`, cambiar el nombre engañoso `certHashes` a `certPemCache`, fijar plantilla literal formatear",
+        "pl": "Harden obsługi błędów: załadunek certyfikatu, odnowienie, czyszczenie i teardown adaptera są teraz indywidualnie strzeżone, więc pojedyncza awaria nie przerywa już całej operacji\nFix: zarejestrować błąd serwera '/' zamknąć 'handlers przed wywołaniem' słuchać () '(poprawny wzór Node.js)\nJakość kodu: usunąć niespójne 'type of this .end' wards, zmienić nazwę wprowadzającego w błąd 'certHashes' na 'certPemCache', naprawić szablon dosłowne formatowanie",
+        "uk": "Загартоване поводження з похибками: завантаження сертифікатів, відновлення, очищення та від перевантаження адаптерів тепер індивідуально охороняється так, що одна відмова не більше бортів всю операцію\nВиправлення: реєстратор серверу `error``/`close`` до виклику `listen()` (корекція Node.js)\nЯкість коду: видалення невідповідних `типів цього.termin` охоронців, перейменування в оману `certHashes` до `certPemCache`, виправлено форматування шаблону",
+        "zh-cn": "Harden 错误处理: 证书加载、 更新、 清理和适配器拆卸现在被单独看守, 所以一次失败不再中止整个操作\n修复:在调用“ listen()”之前登记服务器`error'/`close'处理器(正确的节点模式)\n代码质量:删除前后不一致的“ 类型” 。 终止“ 守护, 将误导的“ certHashes” 重命名为“ certPemCache” , 固定模板文字格式"
+      },
       "0.1.9": {
         "en": "Optimize logging behavior: request logs now use debug level, transient backend restart errors are logged as debug with details, and startup logs are less noisy\nHarden certificate handling: hosts with configured but unavailable certificates now fail closed for HTTPS/WSS instead of falling back silently\nImprove `info.connection` state handling: state is now true only when both HTTP and HTTPS listeners are active",
         "de": "Optimieren Sie Protokollverhalten: Anfragen Protokolle verwenden jetzt Debug-Level, transiente Backend-Neustartfehler werden als Debug mit Details angemeldet, und Startprotokolle sind weniger laut\nHarden-Zertifikatshandling: Hosts mit konfigurierten, aber nicht verfügbaren Zertifikaten sind jetzt nicht für HTTPS/WSS geschlossen, anstatt still zu fallen\nVerbessern Sie `info.connection` Zustandsbehandlung: Zustand ist jetzt nur wahr, wenn sowohl HTTP- als auch HTTPS-Zuhörer aktiv sind",
@@ -150,19 +163,6 @@
         "pl": "Dodano workflows CI/CD i testy, poprawiono czyszczenie timera, usunięto zbędną zależność mocha",
         "uk": "Додано CI/CD-воркфлоу та тести, виправлено очищення таймера, видалено зайву залежність mocha",
         "zh-cn": "添加 CI/CD 工作流和测试，修复定时器清理，移除冗余 mocha 依赖"
-      },
-      "0.1.3": {
-        "en": "Add ESLint, release-script, .vscode settings, code cleanup",
-        "de": "ESLint, Release-Script, .vscode-Einstellungen und Code-Bereinigung hinzugefügt",
-        "ru": "Добавлены ESLint, release-script, настройки .vscode, очистка кода",
-        "pt": "Adicionado ESLint, release-script, configurações .vscode, limpeza de código",
-        "nl": "ESLint, release-script, .vscode-instellingen en code-opschoning toegevoegd",
-        "fr": "Ajout ESLint, release-script, paramètres .vscode, nettoyage du code",
-        "it": "Aggiunti ESLint, release-script, impostazioni .vscode, pulizia codice",
-        "es": "Añadido ESLint, release-script, configuración .vscode, limpieza de código",
-        "pl": "Dodano ESLint, release-script, ustawienia .vscode, porządki w kodzie",
-        "uk": "Додано ESLint, release-script, налаштування .vscode, очищення коду",
-        "zh-cn": "添加 ESLint、release-script、.vscode 设置，代码清理"
       }
     }
   },
