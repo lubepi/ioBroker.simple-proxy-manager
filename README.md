@@ -143,6 +143,9 @@ Hosts with an unknown hostname are rejected at the TLS level – no fallback cer
 Certificate loading details are available in the debug log.
 
 ## Changelog
+### **WORK IN PROGRESS**
+- (copilot) Adapter requires node.js >= 22 now
+
 ### 0.1.10 (2026-04-29)
 
 - Harden error handling: certificate loading, renewal, cleanup and adapter teardown are now individually guarded so a single failure no longer aborts the entire operation
