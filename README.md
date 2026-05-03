@@ -29,7 +29,7 @@ Simple HTTPS/HTTP reverse proxy manager for ioBroker.
 
 ## Prerequisites
 
-- **Node.js** >= 20
+- **Node.js** >= 22
 - **ioBroker** with js-controller >= 6.0.11
 - **ACME adapter** for automatic SSL certificates (optional – also usable without certificates)
 - The configured ports must be available (defaults: 80 for HTTP, 443 for HTTPS)
