@@ -174,6 +174,8 @@ Certificate loading details are available in the debug log.
 - Update release workflow documentation
 - Switch to NPM Trusted Publishing
 
+[Older changelogs can be found there](CHANGELOG_OLD.md)
+
 ## License
 
 MIT License
