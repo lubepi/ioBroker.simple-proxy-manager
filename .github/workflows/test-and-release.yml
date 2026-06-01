@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Check and Lint
-        uses: ioBroker/testing-action-check@v1
+        uses: ioBroker/testing-action-check@v2
         with:
           node-version: '24.x'
           lint: true
