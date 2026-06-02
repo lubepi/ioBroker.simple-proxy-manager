@@ -29,5 +29,8 @@
   "Certificate": "证书",
   "Allowed Networks": "允许的网络",
   "Change Origin": "更改 Origin",
-  "backendsHelp": "**Hostname**：通过 DNS 指向此服务器的域名。**Target URL**：后端地址（http://IP:Port）。**Certificate**：来自 `system.certificates` 的证书。有证书 = HTTPS + HTTP→HTTPS 重定向。无证书 = 仅 HTTP（此主机无 HTTPS）。**Allowed Networks**：逗号分隔的 CIDR 网络/IP（IPv4 + IPv6）。留空 = 允许所有访问。**Change Origin**：将 Host 头重写为目标 IP。"
+  "backendsHelp": "**Hostname**：通过 DNS 指向此服务器的域名。**Target URL**：后端地址（http://IP:Port）。**Certificate**：来自 `system.certificates` 的证书。有证书 = HTTPS + HTTP→HTTPS 重定向。无证书 = 仅 HTTP（此主机无 HTTPS）。**Allowed Networks**：逗号分隔的 CIDR 网络/IP（IPv4 + IPv6）。留空 = 允许所有访问。**Change Origin**：将 Host 头重写为目标 IP。",
+  "example.domain.de": "example.domain.de",
+  "http://127.0.0.1:3000": "http://127.0.0.1:3000",
+  "192.168.0.0/24, fd00::/8": "192.168.0.0/24, fd00::/8"
 }

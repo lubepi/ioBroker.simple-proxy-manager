@@ -29,5 +29,8 @@
   "Certificate": "Сертифікат",
   "Allowed Networks": "Дозволені мережі",
   "Change Origin": "Змінити Origin",
-  "backendsHelp": "**Hostname**: Домен, що вказує на цей сервер через DNS. **Target URL**: Адреса бекенду (http://IP:Port). **Certificate**: Сертифікат з `system.certificates`. З сертифікатом = HTTPS + перенаправлення HTTP→HTTPS. Без сертифіката = лише HTTP (немає HTTPS для цього хоста). **Allowed Networks**: CIDR-мережі/IP через кому (IPv4 + IPv6). Порожньо = доступ звідусіль. **Change Origin**: Перезаписати заголовок Host на IP цілі."
+  "backendsHelp": "**Hostname**: Домен, що вказує на цей сервер через DNS. **Target URL**: Адреса бекенду (http://IP:Port). **Certificate**: Сертифікат з `system.certificates`. З сертифікатом = HTTPS + перенаправлення HTTP→HTTPS. Без сертифіката = лише HTTP (немає HTTPS для цього хоста). **Allowed Networks**: CIDR-мережі/IP через кому (IPv4 + IPv6). Порожньо = доступ звідусіль. **Change Origin**: Перезаписати заголовок Host на IP цілі.",
+  "example.domain.de": "example.domain.de",
+  "http://127.0.0.1:3000": "http://127.0.0.1:3000",
+  "192.168.0.0/24, fd00::/8": "192.168.0.0/24, fd00::/8"
 }

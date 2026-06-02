@@ -29,5 +29,8 @@
   "Certificate": "Zertifikat",
   "Allowed Networks": "Erlaubte Netzwerke",
   "Change Origin": "Origin ändern",
-  "backendsHelp": "**Hostname**: Domain, die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Zertifikat**: Zertifikat aus `system.certificates`. Mit Zertifikat = HTTPS + HTTP→HTTPS-Weiterleitung. Ohne Zertifikat = nur HTTP (kein HTTPS für diesen Host). **Erlaubte Netzwerke**: Kommagetrennte CIDR-Netzwerke/IPs (IPv4 + IPv6). Leer = Zugriff von überall erlaubt. **Origin ändern**: Host-Header auf Ziel-IP umschreiben."
+  "backendsHelp": "**Hostname**: Domain, die per DNS auf diesen Server zeigt. **Ziel-URL**: Backend-Adresse (http://IP:Port). **Zertifikat**: Zertifikat aus `system.certificates`. Mit Zertifikat = HTTPS + HTTP→HTTPS-Weiterleitung. Ohne Zertifikat = nur HTTP (kein HTTPS für diesen Host). **Erlaubte Netzwerke**: Kommagetrennte CIDR-Netzwerke/IPs (IPv4 + IPv6). Leer = Zugriff von überall erlaubt. **Origin ändern**: Host-Header auf Ziel-IP umschreiben.",
+  "example.domain.de": "example.domain.de",
+  "http://127.0.0.1:3000": "http://127.0.0.1:3000",
+  "192.168.0.0/24, fd00::/8": "192.168.0.0/24, fd00::/8"
 }

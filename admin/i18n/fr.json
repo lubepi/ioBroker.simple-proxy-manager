@@ -29,5 +29,8 @@
   "Certificate": "Certificat",
   "Allowed Networks": "Réseaux autorisés",
   "Change Origin": "Changer l'origine",
-  "backendsHelp": "**Hostname** : Domaine pointant vers ce serveur via DNS. **Target URL** : Adresse du backend (http://IP:Port). **Certificate** : Certificat de `system.certificates`. Avec certificat = HTTPS + redirection HTTP→HTTPS. Sans certificat = HTTP uniquement (pas de HTTPS pour cet hôte). **Allowed Networks** : Réseaux/IP CIDR séparés par des virgules (IPv4 + IPv6). Vide = accès autorisé de partout. **Change Origin** : Réécrire l'en-tête Host vers l'IP cible."
+  "backendsHelp": "**Hostname** : Domaine pointant vers ce serveur via DNS. **Target URL** : Adresse du backend (http://IP:Port). **Certificate** : Certificat de `system.certificates`. Avec certificat = HTTPS + redirection HTTP→HTTPS. Sans certificat = HTTP uniquement (pas de HTTPS pour cet hôte). **Allowed Networks** : Réseaux/IP CIDR séparés par des virgules (IPv4 + IPv6). Vide = accès autorisé de partout. **Change Origin** : Réécrire l'en-tête Host vers l'IP cible.",
+  "example.domain.de": "example.domain.de",
+  "http://127.0.0.1:3000": "http://127.0.0.1:3000",
+  "192.168.0.0/24, fd00::/8": "192.168.0.0/24, fd00::/8"
 }

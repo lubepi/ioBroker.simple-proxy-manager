@@ -29,5 +29,8 @@
   "Certificate": "Сертификат",
   "Allowed Networks": "Разрешённые сети",
   "Change Origin": "Изменить Origin",
-  "backendsHelp": "**Hostname**: Домен, указывающий на этот сервер через DNS. **Target URL**: Адрес бэкенда (http://IP:Port). **Certificate**: Сертификат из `system.certificates`. С сертификатом = HTTPS + перенаправление HTTP→HTTPS. Без сертификата = только HTTP (нет HTTPS для этого хоста). **Allowed Networks**: CIDR-сети/IP через запятую (IPv4 + IPv6). Пусто = доступ отовсюду. **Change Origin**: Перезаписать заголовок Host на IP цели."
+  "backendsHelp": "**Hostname**: Домен, указывающий на этот сервер через DNS. **Target URL**: Адрес бэкенда (http://IP:Port). **Certificate**: Сертификат из `system.certificates`. С сертификатом = HTTPS + перенаправление HTTP→HTTPS. Без сертификата = только HTTP (нет HTTPS для этого хоста). **Allowed Networks**: CIDR-сети/IP через запятую (IPv4 + IPv6). Пусто = доступ отовсюду. **Change Origin**: Перезаписать заголовок Host на IP цели.",
+  "example.domain.de": "example.domain.de",
+  "http://127.0.0.1:3000": "http://127.0.0.1:3000",
+  "192.168.0.0/24, fd00::/8": "192.168.0.0/24, fd00::/8"
 }

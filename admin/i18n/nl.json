@@ -29,5 +29,8 @@
   "Certificate": "Certificaat",
   "Allowed Networks": "Toegestane netwerken",
   "Change Origin": "Origin wijzigen",
-  "backendsHelp": "**Hostname**: Domein dat via DNS naar deze server wijst. **Target URL**: Backend-adres (http://IP:Port). **Certificate**: Certificaat uit `system.certificates`. Met certificaat = HTTPS + HTTP→HTTPS-omleiding. Zonder certificaat = alleen HTTP (geen HTTPS voor deze host). **Allowed Networks**: Door komma's gescheiden CIDR-netwerken/IP's (IPv4 + IPv6). Leeg = toegang overal toegestaan. **Change Origin**: Host-header herschrijven naar doel-IP."
+  "backendsHelp": "**Hostname**: Domein dat via DNS naar deze server wijst. **Target URL**: Backend-adres (http://IP:Port). **Certificate**: Certificaat uit `system.certificates`. Met certificaat = HTTPS + HTTP→HTTPS-omleiding. Zonder certificaat = alleen HTTP (geen HTTPS voor deze host). **Allowed Networks**: Door komma's gescheiden CIDR-netwerken/IP's (IPv4 + IPv6). Leeg = toegang overal toegestaan. **Change Origin**: Host-header herschrijven naar doel-IP.",
+  "example.domain.de": "example.domain.de",
+  "http://127.0.0.1:3000": "http://127.0.0.1:3000",
+  "192.168.0.0/24, fd00::/8": "192.168.0.0/24, fd00::/8"
 }
