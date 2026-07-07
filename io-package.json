@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "simple-proxy-manager",
-    "version": "0.1.10",
+    "version": "1.0.0",
     "titleLang": {
       "en": "Simple Proxy Manager",
       "de": "Einfacher Proxy Manager",
@@ -73,6 +73,19 @@
       }
     ],
     "news": {
+      "1.0.0": {
+        "en": "Adapter requires node.js >= 22 now",
+        "de": "Der Adapter benötigt jetzt Node.js >= 22.",
+        "ru": "Для работы адаптера требуется Node.js версии >= 22.",
+        "pt": "O adaptador agora requer Node.js >= 22.",
+        "nl": "De adapter vereist nu Node.js versie 22 of hoger.",
+        "fr": "L'adaptateur nécessite désormais Node.js >= 22.",
+        "it": "L'adattatore ora richiede Node.js >= 22",
+        "es": "El adaptador ahora requiere node.js >= 22.",
+        "pl": "Adapter wymaga teraz node.js >= 22",
+        "uk": "Адаптер тепер вимагає node.js >= 22",
+        "zh-cn": "适配器现在需要 node.js 版本 >= 22。"
+      },
       "0.1.10": {
         "en": "Harden error handling: certificate loading, renewal, cleanup and adapter teardown are now individually guarded so a single failure no longer aborts the entire operation\nFix: register server `error`/`close` handlers before calling `listen()` (correct Node.js pattern)\nCode quality: remove inconsistent `typeof this.terminate` guards, rename misleading `certHashes` to `certPemCache`, fix template literal formatting",
         "de": "Härtefehlerbehandlung: Zertifikatsbeladung, Erneuerung, Aufräumung und Adapterabriss werden nun individuell bewacht, so dass ein einziger Ausfall nicht mehr den gesamten Betrieb abbricht\nFix: Registrieren Sie Server `error`/`close` Handler, bevor Sie `listen()` (korrigieren Node.js-Muster)\nCode-Qualität: entfernen Sie inkonsistent `typeof this.terminate` Wächter, umbenennen irreführende `certHashes` zu `certPemCache`, beheben Template-Literal-Formatierung",
@@ -150,19 +163,6 @@
         "pl": "Naprawiono problemy z sprawdzaniem repozytorium GitHub (E8903, E8912)\nMigracja zależnej automatyzacji do nowego działania iobroker- bot- orga\nDodaj github-actions ekosystem do konfiguracji zależnej\nDodaj zależność przepływu pracy CI: adapter- tests teraz wymaga check- and- lint\nDodaj konfigurację automatycznego połączenia",
         "uk": "Виправлення питань репозиторій GitHub (E8903, E8912)\nMigrate automerge workflow to new iobroker-bot-orga дію\nДодати екосистему github-actions для налаштування\nДодайте залежність від CI: перехідники-тести тепер вимагають перевірки-і-лінт\nДодати налаштування автозапчастин",
         "zh-cn": "修复 GitHub 仓库检查器问题(E8903, E8912)\n迁移依赖自动工作流程到新的 iobroster-bot-orga 动作\n添加 github- actions 生态系统到依赖配置\n添加 CI 工作流程依赖性: 适配器测试现在需要检查和显示\n添加自动合并配置"
-      },
-      "0.1.4": {
-        "en": "Add CI/CD workflows, tests, fix timer cleanup, remove redundant mocha dependency",
-        "de": "CI/CD-Workflows und Tests hinzugefügt, Timer-Cleanup korrigiert, redundante mocha-Abhängigkeit entfernt",
-        "ru": "Добавлены CI/CD-воркфлоу и тесты, исправлена очистка таймера, удалена лишняя зависимость mocha",
-        "pt": "Adicionados workflows CI/CD e testes, correção de limpeza de timer, dependência mocha redundante removida",
-        "nl": "CI/CD-workflows en tests toegevoegd, timer-opruiming gecorrigeerd, redundante mocha-afhankelijkheid verwijderd",
-        "fr": "Ajout workflows CI/CD et tests, correction nettoyage timer, dépendance mocha redondante supprimée",
-        "it": "Aggiunti workflow CI/CD e test, correzione pulizia timer, dipendenza mocha ridondante rimossa",
-        "es": "Añadidos workflows CI/CD y pruebas, corrección limpieza de timer, dependencia mocha redundante eliminada",
-        "pl": "Dodano workflows CI/CD i testy, poprawiono czyszczenie timera, usunięto zbędną zależność mocha",
-        "uk": "Додано CI/CD-воркфлоу та тести, виправлено очищення таймера, видалено зайву залежність mocha",
-        "zh-cn": "添加 CI/CD 工作流和测试，修复定时器清理，移除冗余 mocha 依赖"
       }
     }
   },

@@ -1,4 +1,10 @@
 # Older changes
+## 0.1.6 (2026-03-16)
+
+- Add rich README header with badges and logo
+- Update release workflow documentation
+- Switch to NPM Trusted Publishing
+
 ## 0.1.5 (2026-03-13)
 
 - Fix GitHub repository checker issues (E8903, E8912)
