@@ -143,6 +143,8 @@ Hosts with an unknown hostname are rejected at the TLS level – no fallback cer
 Certificate loading details are available in the debug log.
 
 ## Changelog
+### **WORK IN PROGRESS**
+
 ### 1.0.1 (2026-10-16)
 - (lubepi) **ENHANCED**: Added author email address to package metadata (fixes repository checker E4048)
 
