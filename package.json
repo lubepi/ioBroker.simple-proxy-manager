@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Simple HTTPS Reverse Proxy Manager for ioBroker",
   "author": {
-    "name": "lubepi"
+    "name": "lubepi",
+    "email": "lukas@piel.work"
   },
   "license": "MIT",
   "repository": {

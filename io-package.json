@@ -29,7 +29,7 @@
       "zh-cn": "简单的 HTTPS 反向代理管理器，支持虚拟主机、IP 过滤和自动证书重载"
     },
     "authors": [
-      "lubepi"
+      "lubepi <lukas@piel.work>"
     ],
     "keywords": [
       "proxy",
