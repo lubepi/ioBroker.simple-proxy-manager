@@ -1,4 +1,9 @@
 # Older changes
+## 0.1.8 (2026-03-26)
+- Update GitHub Actions test matrix (Node.js 20, 22, 24)
+- Address reviewer suggestions (use `node:` prefix, specific state roles, interval limiting)
+- Fix linting errors
+
 ## 0.1.7 (2026-03-20)
 
 - Docs: remove generic installation section per S6014
