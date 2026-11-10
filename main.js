@@ -195,8 +195,11 @@ class SimpleProxyManager extends utils.Adapter {
 
         if (coll.chain && Array.isArray(coll.chain) && coll.chain.length > 0) {
             // ACME-style: key is PEM directly, chain is array of PEM certificates
+            // Join with newlines: acme-client v5 (ACME adapter >= 5.0.0) returns PEM blocks
+            // without a trailing newline, so concatenating them directly produces
+            // "PEM routines::bad end line" in OpenSSL.
             key = coll.key;
-            cert = coll.chain.join('');
+            cert = coll.chain.join('\n');
         } else {
             // Reference-style: key/cert are names pointing to native.certificates
             key = certificates[coll.key] || coll.key;

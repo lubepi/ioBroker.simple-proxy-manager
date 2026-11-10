@@ -144,6 +144,7 @@ Certificate loading details are available in the debug log.
 
 ## Changelog
 ### **WORK IN PROGRESS**
+- (lubepi) **FIXED**: Certificates issued by ACME adapter >= 5.0.0 can be loaded again – the certificate chain is now joined with line breaks (fixes #73)
 
 ### 1.0.1 (2026-10-16)
 - (lubepi) **ENHANCED**: Added author email address to package metadata (fixes repository checker E4048)
